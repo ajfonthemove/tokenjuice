@@ -59,6 +59,12 @@ describe("rules", () => {
       "network/ssh",
       "network/traceroute",
       "network/wget",
+      "package/apt-install",
+      "package/apt-upgrade",
+      "package/brew-install",
+      "package/brew-upgrade",
+      "package/dnf-install",
+      "package/yum-install",
       "search/git-grep",
       "search/grep",
       "search/rg",
@@ -96,7 +102,7 @@ describe("rules", () => {
 
   it("loads builtin fixtures successfully", async () => {
     const fixtures = await loadBuiltinFixtures();
-    expect(fixtures).toHaveLength(63);
+    expect(fixtures).toHaveLength(69);
   });
 
   it("verifies builtin fixtures cleanly", async () => {
