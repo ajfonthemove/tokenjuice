@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { buildAnalysisEntry, discoverCandidates, doctorArtifacts, listArtifactMetadata, reduceExecution } from "../src/index.js";
+import { buildAnalysisEntry, discoverCandidates, doctorArtifacts, listArtifactMetadata, reduceExecution, statsArtifacts } from "../src/index.js";
 
 const tempDirs: string[] = [];
 
@@ -88,5 +88,46 @@ describe("analysis", () => {
 
     expect(entry.metadata.classification.matchedReducer).toBe("tests/vitest");
     expect(entry.metadata.rawChars).toBeGreaterThan(0);
+  });
+
+  it("aggregates stats across stored artifacts", async () => {
+    const storeDir = await createTempDir();
+    await reduceExecution(
+      {
+        toolName: "exec",
+        command: "pnpm tsc --noEmit",
+        argv: ["pnpm", "tsc", "--noEmit"],
+        combinedText: "src/index.ts(1,1): error TS2322: bad\nFound 1 error.\n",
+        exitCode: 2,
+      },
+      {
+        store: true,
+        storeDir,
+      },
+    );
+    await reduceExecution(
+      {
+        toolName: "exec",
+        command: "grep TODO src",
+        argv: ["grep", "TODO", "src"],
+        combinedText: Array.from(
+          { length: 20 },
+          (_, index) => `src/file-${index + 1}.ts:${" TODO".repeat(20)}`,
+        ).join("\n"),
+        exitCode: 0,
+      },
+      {
+        store: true,
+        storeDir,
+      },
+    );
+
+    const metadata = await listArtifactMetadata(storeDir);
+    const report = statsArtifacts(metadata);
+    expect(report.totals.entries).toBe(2);
+    expect(report.totals.rawChars).toBeGreaterThan(report.totals.reducedChars);
+    expect(report.reducers.length).toBeGreaterThan(0);
+    expect(report.commands.length).toBeGreaterThan(0);
+    expect(report.daily.length).toBe(1);
   });
 });

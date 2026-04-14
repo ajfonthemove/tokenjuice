@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import { stdin as inputStdin } from "node:process";
 
 import { getArtifact, listArtifactMetadata, listArtifacts } from "../core/artifacts.js";
-import { buildAnalysisEntry, discoverCandidates, doctorArtifacts } from "../core/analysis.js";
+import { buildAnalysisEntry, discoverCandidates, doctorArtifacts, statsArtifacts } from "../core/analysis.js";
 import { reduceExecution } from "../core/reduce.js";
 import { verifyRules } from "../core/rules.js";
 import { runWrappedCommand } from "../core/wrap.js";
@@ -37,6 +37,7 @@ function printUsage(): void {
       "  tokenjuice verify",
       "  tokenjuice discover [file] [--source-command <cmd>] [--tool-name <name>] [--exit-code <n>]",
       "  tokenjuice doctor [file] [--source-command <cmd>] [--tool-name <name>] [--exit-code <n>]",
+      "  tokenjuice stats",
     ].join("\n"),
   );
   process.stderr.write("\n");
@@ -380,6 +381,50 @@ async function runDoctor(args: ParsedArgs): Promise<number> {
   return 0;
 }
 
+async function runStats(args: ParsedArgs): Promise<number> {
+  const entries = await listArtifactMetadata(args.storeDir);
+  const report = statsArtifacts(entries);
+
+  if (args.format === "json") {
+    process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+    return 0;
+  }
+
+  process.stdout.write(`entries: ${report.totals.entries}\n`);
+  process.stdout.write(`raw chars: ${report.totals.rawChars}\n`);
+  process.stdout.write(`reduced chars: ${report.totals.reducedChars}\n`);
+  process.stdout.write(`saved chars: ${report.totals.savedChars}\n`);
+  process.stdout.write(`avg ratio: ${formatRatio(report.totals.avgRatio)}\n`);
+  process.stdout.write(`savings: ${formatRatio(report.totals.savingsPercent)}\n`);
+
+  if (report.reducers.length > 0) {
+    process.stdout.write("top reducers:\n");
+    for (const reducer of report.reducers.slice(0, 5)) {
+      process.stdout.write(
+        `- ${reducer.reducer} count=${reducer.count} saved=${reducer.savedChars} avgRatio=${formatRatio(reducer.avgRatio)}\n`,
+      );
+    }
+  }
+
+  if (report.commands.length > 0) {
+    process.stdout.write("top commands:\n");
+    for (const command of report.commands.slice(0, 5)) {
+      process.stdout.write(
+        `- ${command.signature} count=${command.count} saved=${command.savedChars} avgRatio=${formatRatio(command.avgRatio)}\n`,
+      );
+    }
+  }
+
+  if (report.daily.length > 0) {
+    process.stdout.write("daily:\n");
+    for (const day of report.daily.slice(-5)) {
+      process.stdout.write(`- ${day.day} count=${day.count} saved=${day.savedChars}\n`);
+    }
+  }
+
+  return 0;
+}
+
 async function main(): Promise<number> {
   const args = parseArgs(process.argv.slice(2));
   switch (args.command) {
@@ -397,6 +442,8 @@ async function main(): Promise<number> {
       return await runDiscover(args);
     case "doctor":
       return await runDoctor(args);
+    case "stats":
+      return await runStats(args);
     default:
       printUsage();
       return 1;

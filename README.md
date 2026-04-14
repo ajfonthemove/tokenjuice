@@ -29,6 +29,7 @@ tokenjuice cat <artifact-id>
 tokenjuice verify
 tokenjuice discover
 tokenjuice doctor
+tokenjuice stats
 ```
 
 ## rule system
@@ -50,6 +51,8 @@ cat build.log | tokenjuice doctor --source-command "pnpm eslint src" --exit-code
 ```
 
 use `tokenjuice doctor` to inspect coverage, generic fallbacks, weak reducers, and savings ratios.
+
+use `tokenjuice stats` to see reducer-level savings, top commands, and simple daily totals from stored artifacts.
 
 ## docs
 

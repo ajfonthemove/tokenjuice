@@ -110,6 +110,15 @@ tokenjuice doctor
 cat build.log | tokenjuice doctor --source-command "pnpm eslint src" --exit-code 1
 ```
 
+### stats
+
+summarize stored artifact history:
+
+```bash
+tokenjuice stats
+tokenjuice stats --format json
+```
+
 ## rule model
 
 tokenjuice uses JSON rules because they are easy to parse, easy to validate, and easy to inspect in tooling.
@@ -155,6 +164,7 @@ that is intentionally boring. boring is good here.
 - preserve more context on non-zero exits
 - make verification cheap and scriptable
 - make diagnostics artifact-driven so tuning follows real usage
+- make savings measurable per reducer and per command over time
 
 ## next targets
 

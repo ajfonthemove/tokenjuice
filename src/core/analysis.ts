@@ -31,6 +31,40 @@ export type DoctorReport = {
   }>;
 };
 
+export type StatsReport = {
+  totals: {
+    entries: number;
+    rawChars: number;
+    reducedChars: number;
+    savedChars: number;
+    avgRatio: number | null;
+    savingsPercent: number | null;
+  };
+  reducers: Array<{
+    reducer: string;
+    count: number;
+    rawChars: number;
+    reducedChars: number;
+    savedChars: number;
+    avgRatio: number | null;
+  }>;
+  commands: Array<{
+    signature: string;
+    count: number;
+    rawChars: number;
+    reducedChars: number;
+    savedChars: number;
+    avgRatio: number | null;
+  }>;
+  daily: Array<{
+    day: string;
+    count: number;
+    rawChars: number;
+    reducedChars: number;
+    savedChars: number;
+  }>;
+};
+
 type GroupState = {
   kind: DiscoverCandidate["kind"];
   signature: string;
@@ -213,6 +247,107 @@ function buildDoctorAlerts(
 
   const health: DoctorReport["health"] = avgRatio !== null && avgRatio >= 0.85 ? "poor" : "warn";
   return { health, alerts };
+}
+
+type StatsGroup = {
+  count: number;
+  rawChars: number;
+  reducedChars: number;
+  ratioSum: number;
+  ratioCount: number;
+};
+
+function addToStatsGroup(group: StatsGroup | undefined, entry: AnalysisEntry): StatsGroup {
+  return {
+    count: (group?.count ?? 0) + 1,
+    rawChars: (group?.rawChars ?? 0) + entry.metadata.rawChars,
+    reducedChars: (group?.reducedChars ?? 0) + (entry.metadata.reducedChars ?? entry.metadata.rawChars),
+    ratioSum: (group?.ratioSum ?? 0) + (entry.metadata.ratio ?? 1),
+    ratioCount: (group?.ratioCount ?? 0) + (typeof entry.metadata.ratio === "number" ? 1 : 0),
+  };
+}
+
+function avgRatioFromGroup(group: StatsGroup): number | null {
+  return group.ratioCount > 0 ? group.ratioSum / group.ratioCount : null;
+}
+
+function isoDay(createdAt: string): string {
+  return createdAt.slice(0, 10);
+}
+
+export function statsArtifacts(entries: AnalysisEntry[]): StatsReport {
+  const reducers = new Map<string, StatsGroup>();
+  const commands = new Map<string, StatsGroup>();
+  const daily = new Map<string, StatsGroup>();
+
+  let rawChars = 0;
+  let reducedChars = 0;
+  let ratioSum = 0;
+  let ratioCount = 0;
+
+  for (const entry of entries) {
+    const reducer = entry.metadata.classification.matchedReducer ?? "generic/fallback";
+    const signature = normalizeCommandSignature(entry.metadata.command) ?? "(unknown)";
+    const day = isoDay(entry.metadata.createdAt);
+    const reduced = entry.metadata.reducedChars ?? entry.metadata.rawChars;
+
+    rawChars += entry.metadata.rawChars;
+    reducedChars += reduced;
+    if (typeof entry.metadata.ratio === "number") {
+      ratioSum += entry.metadata.ratio;
+      ratioCount += 1;
+    }
+
+    reducers.set(reducer, addToStatsGroup(reducers.get(reducer), entry));
+    commands.set(signature, addToStatsGroup(commands.get(signature), entry));
+    daily.set(day, addToStatsGroup(daily.get(day), entry));
+  }
+
+  const savedChars = rawChars - reducedChars;
+  const avgRatio = ratioCount > 0 ? ratioSum / ratioCount : null;
+  const savingsPercent = rawChars > 0 ? savedChars / rawChars : null;
+
+  return {
+    totals: {
+      entries: entries.length,
+      rawChars,
+      reducedChars,
+      savedChars,
+      avgRatio,
+      savingsPercent,
+    },
+    reducers: [...reducers.entries()]
+      .map(([reducer, group]) => ({
+        reducer,
+        count: group.count,
+        rawChars: group.rawChars,
+        reducedChars: group.reducedChars,
+        savedChars: group.rawChars - group.reducedChars,
+        avgRatio: avgRatioFromGroup(group),
+      }))
+      .sort((left, right) => right.savedChars - left.savedChars || right.count - left.count)
+      .slice(0, 10),
+    commands: [...commands.entries()]
+      .map(([signature, group]) => ({
+        signature,
+        count: group.count,
+        rawChars: group.rawChars,
+        reducedChars: group.reducedChars,
+        savedChars: group.rawChars - group.reducedChars,
+        avgRatio: avgRatioFromGroup(group),
+      }))
+      .sort((left, right) => right.savedChars - left.savedChars || right.count - left.count)
+      .slice(0, 10),
+    daily: [...daily.entries()]
+      .map(([day, group]) => ({
+        day,
+        count: group.count,
+        rawChars: group.rawChars,
+        reducedChars: group.reducedChars,
+        savedChars: group.rawChars - group.reducedChars,
+      }))
+      .sort((left, right) => left.day.localeCompare(right.day)),
+  };
 }
 
 export function doctorArtifacts(entries: AnalysisEntry[]): DoctorReport {
