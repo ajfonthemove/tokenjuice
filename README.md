@@ -1,4 +1,4 @@
-# tokenjuice
+# tokenjuice 🧃
 
 lean output compaction for terminal-heavy agent workflows.
 
@@ -44,3 +44,5 @@ run `tokenjuice verify` to validate the loaded rules.
 ## status
 
 usable foundation, now focused on hardening the rule system and expanding reducer coverage.
+
+💙 built by [Vincent Koc](https://github.com/vincentkoc).
