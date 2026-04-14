@@ -13,18 +13,18 @@
     "trimEmptyEdges": true
   },
   "summarize": {
-    "head": 14,
-    "tail": 4
+    "head": 8,
+    "tail": 6
   },
   "failure": {
     "preserveOnFailure": true,
-    "head": 16,
+    "head": 12,
     "tail": 12
   },
   "counters": [
     {
       "name": "image",
-      "pattern": ".+"
+      "pattern": "^(?!REPOSITORY\\s).+\\S.*$"
     }
   ]
 }

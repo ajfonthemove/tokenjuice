@@ -366,4 +366,151 @@ describe("reduceExecution", () => {
     expect(result.inlineText).toContain("FAIL github.com/example/api 0.021s");
     expect(result.stats.ratio).toBeLessThan(0.1);
   });
+
+  it("compresses large kubectl get tables while counting resource rows", async () => {
+    const rows = Array.from(
+      { length: 140 },
+      (_, index) => `api-${index}   1/1   Running   0   ${index + 1}m`,
+    ).join("\n");
+    const result = await reduceExecution({
+      toolName: "exec",
+      command: "kubectl get pods",
+      argv: ["kubectl", "get", "pods"],
+      combinedText: [
+        "NAME   READY   STATUS    RESTARTS   AGE",
+        rows,
+      ].join("\n"),
+      exitCode: 0,
+    });
+
+    expect(result.classification.matchedReducer).toBe("devops/kubectl-get");
+    expect(result.facts?.resource).toBe(140);
+    expect(result.inlineText).toContain("140 resources");
+    expect(result.inlineText).toContain("NAME   READY   STATUS");
+    expect(result.stats.ratio).toBeLessThan(0.15);
+  });
+
+  it("compresses large docker ps tables while counting containers", async () => {
+    const rows = Array.from(
+      { length: 130 },
+      (_, index) => `c${index.toString().padStart(11, "0")}   api:${index}   \"node server.js\"   ${index + 1} hours ago   Up ${index + 1} hours   0.0.0.0:${3000 + index}->3000/tcp   api-${index}`,
+    ).join("\n");
+    const result = await reduceExecution({
+      toolName: "exec",
+      command: "docker ps",
+      argv: ["docker", "ps"],
+      combinedText: [
+        "CONTAINER ID   IMAGE   COMMAND   CREATED   STATUS   PORTS   NAMES",
+        rows,
+      ].join("\n"),
+      exitCode: 0,
+    });
+
+    expect(result.classification.matchedReducer).toBe("devops/docker-ps");
+    expect(result.facts?.container).toBe(130);
+    expect(result.inlineText).toContain("130 containers");
+    expect(result.inlineText).toContain("CONTAINER ID   IMAGE");
+    expect(result.stats.ratio).toBeLessThan(0.15);
+  });
+
+  it("compresses large docker images tables while counting image rows", async () => {
+    const rows = Array.from(
+      { length: 120 },
+      (_, index) => `repo-${index}   latest   sha256:${index.toString().padStart(12, "0")}   ${index + 1} days ago   ${100 + index}MB`,
+    ).join("\n");
+    const result = await reduceExecution({
+      toolName: "exec",
+      command: "docker images",
+      argv: ["docker", "images"],
+      combinedText: [
+        "REPOSITORY   TAG   IMAGE ID   CREATED   SIZE",
+        rows,
+      ].join("\n"),
+      exitCode: 0,
+    });
+
+    expect(result.classification.matchedReducer).toBe("devops/docker-images");
+    expect(result.facts?.image).toBe(120);
+    expect(result.inlineText).toContain("120 images");
+    expect(result.inlineText).toContain("REPOSITORY   TAG");
+    expect(result.stats.ratio).toBeLessThan(0.15);
+  });
+
+  it("compresses noisy eslint output while keeping diagnostics and summary", async () => {
+    const noise = Array.from(
+      { length: 120 },
+      (_, index) => `src/file-${index}.ts\n  ${index + 1}:1  error  Unexpected any  @typescript-eslint/no-explicit-any`,
+    ).join("\n");
+    const result = await reduceExecution({
+      toolName: "exec",
+      command: "pnpm eslint src",
+      argv: ["pnpm", "eslint", "src"],
+      combinedText: [
+        noise,
+        "",
+        "✖ 120 problems (120 errors, 0 warnings)",
+      ].join("\n"),
+      exitCode: 1,
+    });
+
+    expect(result.classification.matchedReducer).toBe("lint/eslint");
+    expect(result.inlineText).toContain("✖ 120 problems");
+    expect(result.inlineText).toContain("Unexpected any");
+    expect(result.stats.ratio).toBeLessThan(0.2);
+  });
+
+  it("compresses noisy tsc output while keeping errors and summary", async () => {
+    const errors = Array.from(
+      { length: 90 },
+      (_, index) => `src/file-${index}.ts(${index + 1},1): error TS2322: Type 'string' is not assignable to type 'number'.`,
+    ).join("\n");
+    const stats = [
+      "Files:               918",
+      "Lines of Library:  39012",
+      "Memory used:      231000K",
+      "Total time:         2.40s",
+    ].join("\n");
+    const result = await reduceExecution({
+      toolName: "exec",
+      command: "pnpm tsc --noEmit",
+      argv: ["pnpm", "tsc", "--noEmit"],
+      combinedText: [
+        errors,
+        stats,
+        "Found 90 errors in 90 files.",
+      ].join("\n"),
+      exitCode: 2,
+    });
+
+    expect(result.classification.matchedReducer).toBe("build/tsc");
+    expect(result.inlineText).toContain("TS2322");
+    expect(result.inlineText).toContain("Found 90 errors in 90 files.");
+    expect(result.inlineText).not.toContain("Memory used");
+    expect(result.stats.ratio).toBeLessThan(0.2);
+  });
+
+  it("compresses noisy webpack output while keeping asset and error summaries", async () => {
+    const assets = Array.from(
+      { length: 70 },
+      (_, index) => `asset chunk-${index}.js ${(index + 100)} KiB [emitted] [minimized]`,
+    ).join("\n");
+    const result = await reduceExecution({
+      toolName: "exec",
+      command: "pnpm webpack",
+      argv: ["pnpm", "webpack"],
+      combinedText: [
+        assets,
+        "Entrypoint main = runtime.js main.js",
+        "ERROR in ./src/index.ts 12:4",
+        "Module parse failed: Unexpected token (12:4)",
+        "webpack 5.99.0 compiled with 1 error in 2143 ms",
+      ].join("\n"),
+      exitCode: 1,
+    });
+
+    expect(result.classification.matchedReducer).toBe("build/webpack");
+    expect(result.inlineText).toContain("ERROR in ./src/index.ts 12:4");
+    expect(result.inlineText).toContain("compiled with 1 error");
+    expect(result.stats.ratio).toBeLessThan(0.2);
+  });
 });

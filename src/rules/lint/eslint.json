@@ -11,14 +11,24 @@
     "dedupeAdjacent": true,
     "trimEmptyEdges": true
   },
+  "filters": {
+    "keepPatterns": [
+      "^.+\\.(ts|tsx|js|jsx|mjs|cjs)$",
+      "^\\s*\\d+:\\d+\\s+(error|warning)\\s+.+",
+      "^✖\\s+.+",
+      "^\\d+ problems?\\s+\\(.+\\)$",
+      "^\\s*error\\s+.+",
+      "^\\s*warning\\s+.+"
+    ]
+  },
   "summarize": {
-    "head": 14,
+    "head": 10,
     "tail": 10
   },
   "failure": {
     "preserveOnFailure": true,
-    "head": 18,
-    "tail": 18
+    "head": 14,
+    "tail": 14
   },
   "counters": [
     {

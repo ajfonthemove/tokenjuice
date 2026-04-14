@@ -41,17 +41,24 @@
       "^I/O Write time:\\s+.+",
       "^printTime time:\\s+.+",
       "^Emit time:\\s+.+",
-      "^Total time:\\s+.+"
+      "^Total time:\\s+.+",
+      "^Watching for file changes\\."
+    ],
+    "keepPatterns": [
+      "^.+\\(\\d+,\\d+\\):\\s+error TS\\d+: .+",
+      "^.+\\(\\d+,\\d+\\):\\s+warning TS\\d+: .+",
+      "^Found \\d+ errors?.+",
+      "^error TS\\d+: .+"
     ]
   },
   "summarize": {
-    "head": 10,
-    "tail": 8
+    "head": 4,
+    "tail": 4
   },
   "failure": {
     "preserveOnFailure": true,
-    "head": 14,
-    "tail": 14
+    "head": 4,
+    "tail": 6
   },
   "counters": [
     {
