@@ -1,0 +1,29 @@
+{
+  "id": "service/ss",
+  "family": "service-network-state",
+  "description": "Compact ss output while preserving socket rows.",
+  "match": {
+    "toolNames": ["exec"],
+    "argv0": ["ss"]
+  },
+  "transforms": {
+    "stripAnsi": true,
+    "dedupeAdjacent": true,
+    "trimEmptyEdges": true
+  },
+  "summarize": {
+    "head": 14,
+    "tail": 4
+  },
+  "failure": {
+    "preserveOnFailure": true,
+    "head": 16,
+    "tail": 12
+  },
+  "counters": [
+    {
+      "name": "socket",
+      "pattern": ".+"
+    }
+  ]
+}

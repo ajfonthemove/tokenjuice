@@ -62,6 +62,13 @@ describe("rules", () => {
       "search/git-grep",
       "search/grep",
       "search/rg",
+      "service/journalctl",
+      "service/launchctl",
+      "service/lsof",
+      "service/netstat",
+      "service/service",
+      "service/ss",
+      "service/systemctl-status",
       "system/df",
       "system/du",
       "system/ps",
@@ -89,7 +96,7 @@ describe("rules", () => {
 
   it("loads builtin fixtures successfully", async () => {
     const fixtures = await loadBuiltinFixtures();
-    expect(fixtures).toHaveLength(56);
+    expect(fixtures).toHaveLength(63);
   });
 
   it("verifies builtin fixtures cleanly", async () => {

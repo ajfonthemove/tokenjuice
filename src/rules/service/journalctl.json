@@ -1,0 +1,30 @@
+{
+  "id": "service/journalctl",
+  "family": "service-logs",
+  "description": "Compact journalctl output while preserving key log lines and failures.",
+  "match": {
+    "toolNames": ["exec"],
+    "argv0": ["journalctl"]
+  },
+  "transforms": {
+    "stripAnsi": true,
+    "dedupeAdjacent": true,
+    "trimEmptyEdges": true
+  },
+  "summarize": {
+    "head": 10,
+    "tail": 10
+  },
+  "failure": {
+    "preserveOnFailure": true,
+    "head": 16,
+    "tail": 20
+  },
+  "counters": [
+    {
+      "name": "error",
+      "pattern": "error|failed",
+      "flags": "i"
+    }
+  ]
+}
