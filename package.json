@@ -22,6 +22,7 @@
     "bench:fixtures": "node scripts/bench.mjs fixtures",
     "bench:verify": "node scripts/bench.mjs verify",
     "build": "rm -rf dist && tsc -p tsconfig.json && mkdir -p dist/rules && cp -R src/rules/. dist/rules/",
+    "smoke:live": "node scripts/live-smoke.mjs",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

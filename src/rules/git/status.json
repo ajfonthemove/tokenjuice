@@ -31,19 +31,19 @@
   "counters": [
     {
       "name": "modified",
-      "pattern": "modified:"
+      "pattern": "(?:^\\s*modified:)|^(?:[ MTRU][MTRU]|[MTRU][ MTRU])\\s+"
     },
     {
       "name": "new file",
-      "pattern": "new file:"
+      "pattern": "(?:^\\s*new file:)|^(?:A.|.A|\\?\\?)\\s+"
     },
     {
       "name": "deleted",
-      "pattern": "deleted:"
+      "pattern": "(?:^\\s*deleted:)|^(?:D.|.D)\\s+"
     },
     {
       "name": "untracked",
-      "pattern": "untracked files:"
+      "pattern": "(?:^\\s*untracked files:)|^\\?\\?\\s+"
     }
   ]
 }

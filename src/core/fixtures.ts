@@ -119,6 +119,11 @@ export async function verifyBuiltinFixtures(): Promise<FixtureVerificationResult
           ...(fixture.input.cwd ? { cwd: fixture.input.cwd } : {}),
           maxInlineChars: 5000,
         });
+        const factText = Object.entries(result.facts ?? {})
+          .filter(([, count]) => count > 0)
+          .map(([name, count]) => `${count} ${name}${count === 1 ? "" : "s"}`)
+          .join("\n");
+        const searchableText = [result.inlineText, result.previewText, factText].filter(Boolean).join("\n");
 
         if (fixture.expect.matchedReducer && result.classification.matchedReducer !== fixture.expect.matchedReducer) {
           errors.push(
@@ -129,12 +134,12 @@ export async function verifyBuiltinFixtures(): Promise<FixtureVerificationResult
           errors.push(`expected family ${fixture.expect.family}, got ${result.classification.family}`);
         }
         for (const snippet of fixture.expect.contains ?? []) {
-          if (!result.inlineText.includes(snippet)) {
+          if (!searchableText.includes(snippet)) {
             errors.push(`missing expected text: ${snippet}`);
           }
         }
         for (const snippet of fixture.expect.excludes ?? []) {
-          if (result.inlineText.includes(snippet)) {
+          if (searchableText.includes(snippet)) {
             errors.push(`unexpected text present: ${snippet}`);
           }
         }

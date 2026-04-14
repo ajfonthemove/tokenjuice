@@ -40,6 +40,31 @@ describe("reduceExecution", () => {
     expect(result.inlineText).toContain("src/index.ts");
   });
 
+  it("counts short git status entries correctly", async () => {
+    const result = await reduceExecution({
+      toolName: "exec",
+      command: "git status --short --branch",
+      argv: ["git", "status", "--short", "--branch"],
+      combinedText: [
+        "## main...origin/main",
+        " M src/index.ts",
+        "A  src/new.ts",
+        "D  src/old.ts",
+        "?? scripts/live-smoke.mjs",
+      ].join("\n"),
+      exitCode: 0,
+    });
+
+    expect(result.classification.matchedReducer).toBe("git/status");
+    expect(result.facts).toEqual({
+      modified: 1,
+      "new file": 2,
+      deleted: 1,
+      untracked: 1,
+    });
+    expect(result.inlineText).toContain("?? scripts/live-smoke.mjs");
+  });
+
   it("stores raw artifacts when requested", async () => {
     const storeDir = await createTempDir();
     const result = await reduceExecution(
@@ -104,7 +129,7 @@ describe("reduceExecution", () => {
     });
 
     expect(result.classification.matchedReducer).toBe("build/tsc");
-    expect(result.inlineText).toContain("typescript error");
+    expect(result.inlineText).toContain("TS2322");
   });
 
   it("matches eslint output to the lint reducer", async () => {
@@ -137,5 +162,17 @@ describe("reduceExecution", () => {
 
     expect(result.inlineText).toBe("## main...origin/main");
     expect(result.stats.reducedChars).toBeLessThanOrEqual(result.stats.rawChars);
+  });
+
+  it("passes through short generic output when compaction would be longer", async () => {
+    const result = await reduceExecution({
+      toolName: "exec",
+      command: "node dist/cli/main.js verify --fixtures",
+      combinedText: "ok: 93 rules validated, 93 fixtures verified\n",
+      exitCode: 0,
+    });
+
+    expect(result.inlineText).toBe("ok: 93 rules validated, 93 fixtures verified");
+    expect(result.stats.reducedChars).toBeLessThan(result.stats.rawChars);
   });
 });

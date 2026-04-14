@@ -5,6 +5,8 @@ import { storeArtifact } from "./artifacts.js";
 
 import type { CompactResult, CompiledRule, ReduceOptions, ToolExecutionInput } from "../types.js";
 
+const TINY_OUTPUT_MAX_CHARS = 240;
+
 function buildRawText(input: ToolExecutionInput): string {
   if (input.combinedText) {
     return input.combinedText;
@@ -71,6 +73,19 @@ function applyRule(compiledRule: CompiledRule, input: ToolExecutionInput, rawTex
   };
 }
 
+function buildPassthroughText(input: ToolExecutionInput, rawText: string): string {
+  const normalized = trimEmptyEdges(normalizeLines(stripAnsi(rawText))).join("\n").trim();
+  if (!normalized) {
+    return "(no output)";
+  }
+
+  if (input.exitCode && input.exitCode !== 0) {
+    return `exit ${input.exitCode}\n${normalized}`;
+  }
+
+  return normalized;
+}
+
 function formatInline(
   input: ToolExecutionInput,
   summary: string,
@@ -89,6 +104,21 @@ function formatInline(
   }
   lines.push(summary);
   return lines.join("\n").trim();
+}
+
+function selectInlineText(
+  input: ToolExecutionInput,
+  rawText: string,
+  compactText: string,
+): string {
+  const passthroughText = buildPassthroughText(input, rawText);
+  if (passthroughText.length > TINY_OUTPUT_MAX_CHARS) {
+    return compactText;
+  }
+  if (passthroughText.length <= compactText.length) {
+    return passthroughText;
+  }
+  return compactText;
 }
 
 export async function reduceExecution(input: ToolExecutionInput, opts: ReduceOptions = {}): Promise<CompactResult> {
@@ -113,10 +143,9 @@ export async function reduceExecutionWithRules(
   }
 
   const { summary, facts } = applyRule(matchedRule, input, rawText);
-  const provisionalInlineText = clampText(
-    formatInline(input, summary || "(no output)", facts),
-    opts.maxInlineChars ?? 1200,
-  );
+  const compactText = formatInline(input, summary || "(no output)", facts);
+  const selectedText = selectInlineText(input, rawText, compactText);
+  const provisionalInlineText = clampText(selectedText, opts.maxInlineChars ?? 1200);
   const provisionalStats = {
     rawChars: rawText.length,
     reducedChars: provisionalInlineText.length,
@@ -136,10 +165,7 @@ export async function reduceExecutionWithRules(
         opts.storeDir,
       )
     : undefined;
-  const inlineText = clampText(
-    formatInline(input, summary || "(no output)", facts),
-    opts.maxInlineChars ?? 1200,
-  );
+  const inlineText = clampText(selectedText, opts.maxInlineChars ?? 1200);
   const stats = {
     rawChars: rawText.length,
     reducedChars: inlineText.length,

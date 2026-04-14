@@ -37,6 +37,7 @@ tokenjuice stats
 ```bash
 pnpm bench:fixtures
 pnpm bench:verify
+pnpm smoke:live
 ```
 
 ## rule system

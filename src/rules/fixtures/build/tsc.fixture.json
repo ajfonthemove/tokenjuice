@@ -10,6 +10,6 @@
   "expect": {
     "matchedReducer": "build/tsc",
     "family": "build-typescript",
-    "contains": ["typescript error", "TS2322"]
+    "contains": ["exit 2", "TS2322"]
   }
 }
