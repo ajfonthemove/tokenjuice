@@ -125,4 +125,17 @@ describe("reduceExecution", () => {
     expect(result.classification.matchedReducer).toBe("lint/eslint");
     expect(result.inlineText).toContain("warning");
   });
+
+  it("does not bloat already-short output with extra framing", async () => {
+    const result = await reduceExecution({
+      toolName: "exec",
+      command: "git status --short --branch",
+      argv: ["git", "status", "--short", "--branch"],
+      combinedText: "## main...origin/main\n",
+      exitCode: 0,
+    });
+
+    expect(result.inlineText).toBe("## main...origin/main");
+    expect(result.stats.reducedChars).toBeLessThanOrEqual(result.stats.rawChars);
+  });
 });

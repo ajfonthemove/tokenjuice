@@ -4,11 +4,21 @@ import { join } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { clearRuleCache, loadBuiltinFixtures, loadBuiltinRules, loadRules, verifyBuiltinFixtures, verifyBuiltinRules, verifyRules } from "../src/index.js";
+import {
+  clearFixtureCache,
+  clearRuleCache,
+  loadBuiltinFixtures,
+  loadBuiltinRules,
+  loadRules,
+  verifyBuiltinFixtures,
+  verifyBuiltinRules,
+  verifyRules,
+} from "../src/index.js";
 
 const tempDirs: string[] = [];
 
 afterEach(async () => {
+  clearFixtureCache();
   clearRuleCache();
   await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
 });

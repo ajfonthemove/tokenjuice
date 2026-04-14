@@ -57,7 +57,7 @@ function compileRule(descriptor: RuleDescriptor): CompiledRule {
 
 async function listRuleFiles(root: string): Promise<string[]> {
   async function walk(currentDir: string): Promise<string[]> {
-    const entries = await readdir(currentDir, { withFileTypes: true });
+    const entries = (await readdir(currentDir, { withFileTypes: true })).sort((left, right) => left.name.localeCompare(right.name));
     const files = await Promise.all(
       entries.map(async (entry) => {
         const fullPath = join(currentDir, entry.name);

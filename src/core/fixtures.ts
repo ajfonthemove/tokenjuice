@@ -2,7 +2,8 @@ import { readdir, readFile } from "node:fs/promises";
 import { join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { reduceExecution } from "./reduce.js";
+import { reduceExecutionWithRules } from "./reduce.js";
+import { loadBuiltinRules } from "./rules.js";
 
 import type { RuleFixture } from "../types.js";
 
@@ -18,9 +19,11 @@ function fixturesRoot(): string {
   return resolve(fileURLToPath(new URL("../rules/fixtures", import.meta.url)));
 }
 
+const fixtureCache = new Map<string, Array<{ fixture: RuleFixture; path: string }>>();
+
 async function listFixtureFiles(root: string): Promise<string[]> {
   async function walk(currentDir: string): Promise<string[]> {
-    const entries = await readdir(currentDir, { withFileTypes: true });
+    const entries = (await readdir(currentDir, { withFileTypes: true })).sort((left, right) => left.name.localeCompare(right.name));
     const files = await Promise.all(
       entries.map(async (entry) => {
         const fullPath = join(currentDir, entry.name);
@@ -82,9 +85,13 @@ function validateFixture(raw: unknown): raw is RuleFixture {
 
 export async function loadBuiltinFixtures(): Promise<Array<{ fixture: RuleFixture; path: string }>> {
   const root = fixturesRoot();
+  const cached = fixtureCache.get(root);
+  if (cached) {
+    return cached;
+  }
   const files = await listFixtureFiles(root);
 
-  return await Promise.all(
+  const fixtures = await Promise.all(
     files.map(async (fullPath) => {
       const parsed = JSON.parse(await readFile(fullPath, "utf8")) as unknown;
       if (!validateFixture(parsed)) {
@@ -96,16 +103,19 @@ export async function loadBuiltinFixtures(): Promise<Array<{ fixture: RuleFixtur
       };
     }),
   );
+  fixtureCache.set(root, fixtures);
+  return fixtures;
 }
 
 export async function verifyBuiltinFixtures(): Promise<FixtureVerificationResult[]> {
   const fixtures = await loadBuiltinFixtures();
+  const rules = await loadBuiltinRules();
 
   return await Promise.all(
     fixtures.map(async ({ fixture, path }) => {
       const errors: string[] = [];
       try {
-        const result = await reduceExecution(fixture.input, {
+        const result = await reduceExecutionWithRules(fixture.input, rules, {
           ...(fixture.input.cwd ? { cwd: fixture.input.cwd } : {}),
           maxInlineChars: 5000,
         });
@@ -141,4 +151,8 @@ export async function verifyBuiltinFixtures(): Promise<FixtureVerificationResult
       };
     }),
   );
+}
+
+export function clearFixtureCache(): void {
+  fixtureCache.clear();
 }

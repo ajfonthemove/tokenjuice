@@ -75,30 +75,34 @@ function formatInline(
   input: ToolExecutionInput,
   summary: string,
   facts: Record<string, number>,
-  rawChars: number,
-  rawRefId?: string,
 ): string {
   const factParts = Object.entries(facts)
     .filter(([, count]) => count > 0)
     .map(([name, count]) => pluralize(count, name));
 
-  const firstLineParts = ["summary"];
-  if (input.command) {
-    firstLineParts.push(`for \`${input.command}\``);
-  }
+  const lines: string[] = [];
   if (input.exitCode && input.exitCode !== 0) {
-    firstLineParts.push(`exit ${input.exitCode}`);
+    lines.push(`exit ${input.exitCode}`);
   }
-
-  const header = `${firstLineParts.join(" ")}${factParts.length > 0 ? `: ${factParts.join(", ")}.` : "."}`;
-  const artifactNote = rawRefId ? `\nraw artifact: ${rawRefId} (${rawChars} chars).` : "";
-  return `${header}\n${summary}${artifactNote}`.trim();
+  if (factParts.length > 0) {
+    lines.push(factParts.join(", "));
+  }
+  lines.push(summary);
+  return lines.join("\n").trim();
 }
 
 export async function reduceExecution(input: ToolExecutionInput, opts: ReduceOptions = {}): Promise<CompactResult> {
   const rules = await loadRules({
     ...(opts.cwd ? { cwd: opts.cwd } : {}),
   });
+  return reduceExecutionWithRules(input, rules, opts);
+}
+
+export async function reduceExecutionWithRules(
+  input: ToolExecutionInput,
+  rules: CompiledRule[],
+  opts: ReduceOptions = {},
+): Promise<CompactResult> {
   const classification = classifyExecution(input, rules, opts.classifier);
   const rawText = buildRawText(input);
   const matchedRule = rules.find((rule) => rule.rule.id === classification.matchedReducer)
@@ -110,7 +114,7 @@ export async function reduceExecution(input: ToolExecutionInput, opts: ReduceOpt
 
   const { summary, facts } = applyRule(matchedRule, input, rawText);
   const provisionalInlineText = clampText(
-    formatInline(input, summary || "(no output)", facts, rawText.length),
+    formatInline(input, summary || "(no output)", facts),
     opts.maxInlineChars ?? 1200,
   );
   const provisionalStats = {
@@ -133,7 +137,7 @@ export async function reduceExecution(input: ToolExecutionInput, opts: ReduceOpt
       )
     : undefined;
   const inlineText = clampText(
-    formatInline(input, summary || "(no output)", facts, rawText.length, rawRef?.id),
+    formatInline(input, summary || "(no output)", facts),
     opts.maxInlineChars ?? 1200,
   );
   const stats = {

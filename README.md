@@ -32,6 +32,13 @@ tokenjuice doctor
 tokenjuice stats
 ```
 
+## bench
+
+```bash
+pnpm bench:fixtures
+pnpm bench:verify
+```
+
 ## rule system
 
 - built-in JSON rules live in `src/rules`
