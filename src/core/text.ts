@@ -56,5 +56,17 @@ export function clampText(text: string, maxChars: number): string {
 }
 
 export function pluralize(count: number, noun: string): string {
-  return `${count} ${noun}${count === 1 ? "" : "s"}`;
+  if (count === 1) {
+    return `${count} ${noun}`;
+  }
+
+  if (/[sxz]$/u.test(noun) || /(sh|ch)$/u.test(noun)) {
+    return `${count} ${noun}es`;
+  }
+
+  if (/[^aeiou]y$/u.test(noun)) {
+    return `${count} ${noun.slice(0, -1)}ies`;
+  }
+
+  return `${count} ${noun}s`;
 }

@@ -12,14 +12,27 @@
     "dedupeAdjacent": true,
     "trimEmptyEdges": true
   },
+  "filters": {
+    "skipPatterns": [
+      "^ok\\s.+"
+    ],
+    "keepPatterns": [
+      "^FAIL\\s.+",
+      "^--- FAIL: .+",
+      "^panic: .+",
+      "^\\s+.+_test\\.go:\\d+: .+",
+      "^\\s+Error Trace: .+",
+      "^\\s+Error: .+"
+    ]
+  },
   "summarize": {
-    "head": 12,
+    "head": 10,
     "tail": 10
   },
   "failure": {
     "preserveOnFailure": true,
-    "head": 18,
-    "tail": 18
+    "head": 14,
+    "tail": 14
   },
   "counters": [
     {

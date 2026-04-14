@@ -277,4 +277,93 @@ describe("reduceExecution", () => {
     expect(result.inlineText).toContain("1 failed, 120 passed");
     expect(result.stats.ratio).toBeLessThan(0.2);
   });
+
+  it("compresses noisy rg output while keeping match lines", async () => {
+    const matches = Array.from(
+      { length: 180 },
+      (_, index) => `src/file-${index}.ts:${index + 1}: TODO item ${index}`,
+    ).join("\n");
+    const result = await reduceExecution({
+      toolName: "exec",
+      command: "rg TODO src",
+      argv: ["rg", "TODO", "src"],
+      combinedText: matches,
+      exitCode: 0,
+    });
+
+    expect(result.classification.matchedReducer).toBe("search/rg");
+    expect(result.inlineText).toContain("TODO item 0");
+    expect(result.inlineText).toContain("lines omitted");
+    expect(result.stats.ratio).toBeLessThan(0.2);
+  });
+
+  it("compresses noisy docker logs around failures", async () => {
+    const info = Array.from(
+      { length: 140 },
+      (_, index) => `2026-04-14T12:00:${String(index).padStart(2, "0")}Z info worker ${index} ok`,
+    ).join("\n");
+    const result = await reduceExecution({
+      toolName: "exec",
+      command: "docker logs api",
+      argv: ["docker", "logs", "api"],
+      combinedText: [
+        info,
+        "2026-04-14T12:02:00Z warning: deprecated config",
+        "2026-04-14T12:02:01Z error: failed to connect db",
+      ].join("\n"),
+      exitCode: 0,
+    });
+
+    expect(result.classification.matchedReducer).toBe("devops/docker-logs");
+    expect(result.inlineText).toContain("warning: deprecated config");
+    expect(result.inlineText).toContain("error: failed to connect db");
+    expect(result.stats.ratio).toBeLessThan(0.15);
+  });
+
+  it("compresses noisy journalctl output around failures", async () => {
+    const info = Array.from(
+      { length: 140 },
+      (_, index) => `Apr 14 api[123]: info processed request ${index}`,
+    ).join("\n");
+    const result = await reduceExecution({
+      toolName: "exec",
+      command: "journalctl -u api.service",
+      argv: ["journalctl", "-u", "api.service"],
+      combinedText: [
+        info,
+        "Apr 14 api[123]: warning: backlog growing",
+        "Apr 14 api[123]: error: failed to bind port",
+      ].join("\n"),
+      exitCode: 0,
+    });
+
+    expect(result.classification.matchedReducer).toBe("service/journalctl");
+    expect(result.inlineText).toContain("warning: backlog growing");
+    expect(result.inlineText).toContain("error: failed to bind port");
+    expect(result.stats.ratio).toBeLessThan(0.15);
+  });
+
+  it("compresses noisy go test output while keeping failing package details", async () => {
+    const passing = Array.from(
+      { length: 160 },
+      (_, index) => `ok  github.com/example/pkg${index} 0.01${index % 10}s`,
+    ).join("\n");
+    const result = await reduceExecution({
+      toolName: "exec",
+      command: "go test ./...",
+      argv: ["go", "test", "./..."],
+      combinedText: [
+        passing,
+        "--- FAIL: TestSave (0.00s)",
+        "    api_test.go:42: expected 200, got 500",
+        "FAIL github.com/example/api 0.021s",
+      ].join("\n"),
+      exitCode: 1,
+    });
+
+    expect(result.classification.matchedReducer).toBe("tests/go-test");
+    expect(result.inlineText).toContain("--- FAIL: TestSave");
+    expect(result.inlineText).toContain("FAIL github.com/example/api 0.021s");
+    expect(result.stats.ratio).toBeLessThan(0.1);
+  });
 });
