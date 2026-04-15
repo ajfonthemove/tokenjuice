@@ -1,6 +1,6 @@
-import { readdir, readFile } from "node:fs/promises";
+import { readdir, readFile, realpath } from "node:fs/promises";
 import { homedir } from "node:os";
-import { join, relative, resolve } from "node:path";
+import { isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type { CompiledRule, JsonRule, RuleOrigin } from "../types.js";
@@ -56,11 +56,20 @@ function compileRule(descriptor: RuleDescriptor): CompiledRule {
 }
 
 async function listRuleFiles(root: string): Promise<string[]> {
+  const resolvedRoot = await realpath(root).catch(() => null);
+  if (!resolvedRoot) {
+    return [];
+  }
+  const rootRealPath = resolvedRoot;
+
   async function walk(currentDir: string): Promise<string[]> {
     const entries = (await readdir(currentDir, { withFileTypes: true })).sort((left, right) => left.name.localeCompare(right.name));
     const files = await Promise.all(
       entries.map(async (entry) => {
         const fullPath = join(currentDir, entry.name);
+        if (entry.isSymbolicLink()) {
+          return [];
+        }
         if (entry.isDirectory()) {
           return await walk(fullPath);
         }
@@ -72,7 +81,17 @@ async function listRuleFiles(root: string): Promise<string[]> {
         ) {
           return [];
         }
-        return [fullPath];
+        const realFilePath = await realpath(fullPath).catch(() => null);
+        if (!realFilePath) {
+          return [];
+        }
+
+        const relativePath = relative(rootRealPath, realFilePath);
+        if (relativePath.startsWith("..") || isAbsolute(relativePath)) {
+          return [];
+        }
+
+        return [realFilePath];
       }),
     );
     return files.flat();

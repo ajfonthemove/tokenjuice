@@ -103,6 +103,7 @@ envelope payload:
 
 - spec: `docs/spec.md`
 - rules: `docs/rules.md`
+- security: `SECURITY.md`
 
 ## status
 

@@ -236,4 +236,51 @@ describe("rules", () => {
     expect(bad?.errors.join("\n")).toContain("must not contain NUL bytes");
     expect(bad?.errors.join("\n")).toContain("non-negative integer");
   });
+
+  it("reports malformed override json files in verify", async () => {
+    const cwd = await createTempDir();
+    const rulesDir = join(cwd, ".tokenjuice", "rules");
+    await mkdir(rulesDir, { recursive: true });
+    await writeFile(join(rulesDir, "broken.json"), "{ not-valid", "utf8");
+
+    const results = await verifyRules({ cwd });
+    const broken = results.find((result) => result.path.endsWith("broken.json"));
+    expect(broken?.ok).toBe(false);
+    expect(broken?.errors.join("\n")).toContain("Expected property name");
+  });
+
+  it("ignores symlinked override rule files", async () => {
+    if (process.platform === "win32") {
+      return;
+    }
+
+    const cwd = await createTempDir();
+    const rulesDir = join(cwd, ".tokenjuice", "rules", "git");
+    const externalDir = await createTempDir();
+    await mkdir(rulesDir, { recursive: true });
+    const externalRulePath = join(externalDir, "status.json");
+    await writeFile(
+      externalRulePath,
+      JSON.stringify(
+        {
+          id: "git/status",
+          family: "symlink-rule",
+          match: {
+            argv0: ["git"],
+          },
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+    const { symlink } = await import("node:fs/promises");
+    await symlink(externalRulePath, join(rulesDir, "status.json"));
+
+    const rules = await loadRules({ cwd });
+    const gitStatus = rules.find((rule) => rule.rule.id === "git/status");
+
+    expect(gitStatus?.source).toBe("builtin");
+    expect(gitStatus?.rule.family).not.toBe("symlink-rule");
+  });
 });

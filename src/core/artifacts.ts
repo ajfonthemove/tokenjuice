@@ -9,6 +9,42 @@ import type { ArtifactMetadataRef, StoredArtifact, StoredArtifactInput, StoredAr
 
 const ARTIFACT_ID_PATTERN = /^tj_[0-9a-f-]{12}$/iu;
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isStoredArtifactMetadata(value: unknown): value is StoredArtifactMetadata {
+  if (!isRecord(value) || typeof value.createdAt !== "string" || typeof value.rawChars !== "number") {
+    return false;
+  }
+
+  if (!isRecord(value.classification) || typeof value.classification.family !== "string" || typeof value.classification.confidence !== "number") {
+    return false;
+  }
+
+  if ("matchedReducer" in value.classification && value.classification.matchedReducer !== undefined && typeof value.classification.matchedReducer !== "string") {
+    return false;
+  }
+
+  if ("toolName" in value && value.toolName !== undefined && typeof value.toolName !== "string") {
+    return false;
+  }
+  if ("command" in value && value.command !== undefined && typeof value.command !== "string") {
+    return false;
+  }
+  if ("exitCode" in value && value.exitCode !== undefined && typeof value.exitCode !== "number") {
+    return false;
+  }
+  if ("reducedChars" in value && value.reducedChars !== undefined && typeof value.reducedChars !== "number") {
+    return false;
+  }
+  if ("ratio" in value && value.ratio !== undefined && typeof value.ratio !== "number") {
+    return false;
+  }
+
+  return true;
+}
+
 function artifactBaseDir(storeDir?: string): string {
   return storeDir ?? join(homedir(), ".tokenjuice", "artifacts");
 }
@@ -72,7 +108,13 @@ export async function getArtifact(id: string, storeDir?: string): Promise<Stored
     return {
       id,
       rawText,
-      metadata: JSON.parse(metadataRaw) as StoredArtifact["metadata"],
+      metadata: (() => {
+        const parsed = JSON.parse(metadataRaw) as unknown;
+        if (!isStoredArtifactMetadata(parsed)) {
+          throw new Error("invalid artifact metadata");
+        }
+        return parsed;
+      })(),
     };
   } catch {
     return null;
@@ -101,9 +143,13 @@ export async function listArtifactMetadata(storeDir?: string): Promise<ArtifactM
     refs.map(async (ref) => {
       try {
         const raw = await readFile(ref.metadataPath, "utf8");
+        const parsed = JSON.parse(raw) as unknown;
+        if (!isStoredArtifactMetadata(parsed)) {
+          return null;
+        }
         return {
           ...ref,
-          metadata: JSON.parse(raw) as StoredArtifactMetadata,
+          metadata: parsed,
         };
       } catch {
         return null;

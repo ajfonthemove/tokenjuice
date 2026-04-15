@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { getArtifact, listArtifacts, storeArtifact } from "../src/index.js";
+import { getArtifact, listArtifactMetadata, listArtifacts, storeArtifact } from "../src/index.js";
 
 const tempDirs: string[] = [];
 
@@ -60,5 +60,20 @@ describe("artifacts", () => {
 
     expect(rawMode).toBe(0o600);
     expect(metadataMode).toBe(0o600);
+  });
+
+  it("ignores corrupted metadata files when loading artifact metadata", async () => {
+    const storeDir = await createTempDir();
+    await writeFile(join(storeDir, "tj_1234567-abcd.json"), JSON.stringify(["bad"]), "utf8");
+    await writeFile(join(storeDir, "tj_1234567-abcd.txt"), "raw", "utf8");
+
+    const refs = await listArtifacts(storeDir);
+    expect(refs).toHaveLength(1);
+
+    const metadata = await listArtifactMetadata(storeDir);
+    expect(metadata).toEqual([]);
+
+    const artifact = await getArtifact("tj_1234567-abcd", storeDir);
+    expect(artifact).toBeNull();
   });
 });
