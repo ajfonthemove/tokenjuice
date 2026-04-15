@@ -2,6 +2,8 @@ const ANSI_CSI_PATTERN = new RegExp(String.raw`\u001B\[[0-?]*[ -/]*[@-~]`, "g");
 const ANSI_OSC_PATTERN = new RegExp(String.raw`\u001B\][^\u0007\u001B]*(?:\u0007|\u001B\\)`, "g");
 const ANSI_SINGLE_PATTERN = new RegExp(String.raw`\u001B[@-_]`, "g");
 const TRUNCATION_SUFFIX = "\n... truncated ...";
+const COMBINING_MARK_PATTERN = /\p{Mark}/u;
+const EMOJI_PATTERN = /\p{Extended_Pictographic}/u;
 const graphemeSegmenter = typeof Intl !== "undefined" && "Segmenter" in Intl
   ? new Intl.Segmenter(undefined, { granularity: "grapheme" })
   : null;
@@ -23,6 +25,61 @@ export function stripAnsi(text: string): string {
 
 export function countTextChars(text: string): number {
   return graphemes(text).length;
+}
+
+function codePointWidth(codePoint: number): number {
+  if (
+    codePoint === 0
+    || (codePoint >= 0x0000 && codePoint < 0x0020)
+    || (codePoint >= 0x007f && codePoint < 0x00a0)
+  ) {
+    return 0;
+  }
+
+  if (
+    (codePoint >= 0x1100 && codePoint <= 0x115f)
+    || codePoint === 0x2329
+    || codePoint === 0x232a
+    || (codePoint >= 0x2e80 && codePoint <= 0xa4cf && codePoint !== 0x303f)
+    || (codePoint >= 0xac00 && codePoint <= 0xd7a3)
+    || (codePoint >= 0xf900 && codePoint <= 0xfaff)
+    || (codePoint >= 0xfe10 && codePoint <= 0xfe19)
+    || (codePoint >= 0xfe30 && codePoint <= 0xfe6f)
+    || (codePoint >= 0xff00 && codePoint <= 0xff60)
+    || (codePoint >= 0xffe0 && codePoint <= 0xffe6)
+    || (codePoint >= 0x1f300 && codePoint <= 0x1faff)
+    || (codePoint >= 0x20000 && codePoint <= 0x3fffd)
+  ) {
+    return 2;
+  }
+
+  return 1;
+}
+
+function graphemeWidth(segment: string): number {
+  if (segment === "") {
+    return 0;
+  }
+
+  if (EMOJI_PATTERN.test(segment)) {
+    return 2;
+  }
+
+  let width = 0;
+  let hasVisibleCodePoint = false;
+  for (const char of segment) {
+    if (char === "\u200d" || char === "\ufe0f" || COMBINING_MARK_PATTERN.test(char)) {
+      continue;
+    }
+    width = Math.max(width, codePointWidth(char.codePointAt(0) ?? 0));
+    hasVisibleCodePoint = true;
+  }
+
+  return hasVisibleCodePoint ? width : 0;
+}
+
+export function countTerminalCells(text: string): number {
+  return graphemes(text).reduce((sum, segment) => sum + graphemeWidth(segment), 0);
 }
 
 export function normalizeLines(text: string): string[] {

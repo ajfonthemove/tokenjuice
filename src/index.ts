@@ -6,6 +6,7 @@ export { clearFixtureCache, loadBuiltinFixtures, verifyBuiltinFixtures } from ".
 export { parseReduceJsonRequest } from "./core/json-protocol.js";
 export { classifyOnly, findMatchingRule, reduceExecution, reduceExecutionWithRules } from "./core/reduce.js";
 export { clearRuleCache, loadBuiltinRules, loadRules, verifyBuiltinRules, verifyRules } from "./core/rules.js";
+export { clampText, countTerminalCells, countTextChars, stripAnsi } from "./core/text.js";
 export { runWrappedCommand } from "./core/wrap.js";
 export { assertValidRule, validateRule } from "./core/validate-rules.js";
 

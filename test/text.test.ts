@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { clampText, countTextChars, stripAnsi } from "../src/core/text.js";
+import { clampText, countTerminalCells, countTextChars, stripAnsi } from "../src/core/text.js";
 
 describe("text helpers", () => {
   it("strips xterm colors and OSC hyperlinks while preserving emoji and CJK", () => {
@@ -23,5 +23,21 @@ describe("text helpers", () => {
 
     expect(clamped).toBe("\n... truncated ...");
     expect(countTextChars(clamped)).toBeLessThanOrEqual(18);
+  });
+
+  it("counts terminal cells for emoji, cjk, and combining characters", () => {
+    expect(countTerminalCells("abc")).toBe(3);
+    expect(countTerminalCells("错误")).toBe(4);
+    expect(countTerminalCells("🦊")).toBe(2);
+    expect(countTerminalCells("e\u0301")).toBe(1);
+    expect(countTerminalCells("👨‍👩‍👧‍👦")).toBe(2);
+  });
+
+  it("counts visible cells after ansi stripping", () => {
+    const input = "\u001b[31m错误🔥\u001b[0m \u001b]8;;https://openclaw.ai\u0007完了✅\u001b]8;;\u0007";
+    const stripped = stripAnsi(input);
+
+    expect(stripped).toBe("错误🔥 完了✅");
+    expect(countTerminalCells(stripped)).toBe(13);
   });
 });
