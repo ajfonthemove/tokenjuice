@@ -1,5 +1,7 @@
 const ANSI_CSI_PATTERN = new RegExp(String.raw`\u001B\[[0-?]*[ -/]*[@-~]`, "g");
 const ANSI_OSC_PATTERN = new RegExp(String.raw`\u001B\][^\u0007\u001B]*(?:\u0007|\u001B\\)`, "g");
+const ANSI_CSI_INCOMPLETE_PATTERN = new RegExp(String.raw`\u001B\[[0-?]*[ -/]*$`, "g");
+const ANSI_OSC_INCOMPLETE_PATTERN = new RegExp(String.raw`\u001B\][^\u0007\u001B]*$`, "g");
 const ANSI_SINGLE_PATTERN = new RegExp(String.raw`\u001B[@-_]`, "g");
 const TRUNCATION_SUFFIX = "\n... truncated ...";
 const COMBINING_MARK_PATTERN = /\p{Mark}/u;
@@ -20,7 +22,10 @@ export function stripAnsi(text: string): string {
   return text
     .replaceAll(ANSI_OSC_PATTERN, "")
     .replaceAll(ANSI_CSI_PATTERN, "")
-    .replaceAll(ANSI_SINGLE_PATTERN, "");
+    .replaceAll(ANSI_OSC_INCOMPLETE_PATTERN, "")
+    .replaceAll(ANSI_CSI_INCOMPLETE_PATTERN, "")
+    .replaceAll(ANSI_SINGLE_PATTERN, "")
+    .replaceAll("\u001b", "");
 }
 
 export function countTextChars(text: string): number {

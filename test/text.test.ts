@@ -40,4 +40,13 @@ describe("text helpers", () => {
     expect(stripped).toBe("错误🔥 完了✅");
     expect(countTerminalCells(stripped)).toBe(13);
   });
+
+  it("strips dangling ansi and osc fragments instead of leaking escape garbage", () => {
+    const input = "ok \u001b[38;5;196broken \u001b]8;;https://openclaw.aibroken-link";
+    const stripped = stripAnsi(input);
+
+    expect(stripped.startsWith("ok ")).toBe(true);
+    expect(stripped).not.toContain("broken-link");
+    expect(stripped).not.toContain("\u001b");
+  });
 });

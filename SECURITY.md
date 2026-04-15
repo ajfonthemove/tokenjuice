@@ -27,3 +27,24 @@ when reporting, include:
 - any relevant logs or environment details
 
 you should get an acknowledgment once the report is reviewed. fixes will generally land in the latest supported release first.
+
+## Trust Model
+
+tokenjuice is designed to compact and optionally store terminal output. it does not sandbox commands, inspect network traffic, or prevent a wrapped command from doing dangerous things on its own.
+
+current safety boundaries:
+
+- `wrap` executes the command you pass; it does not rewrite shell semantics or add shell interpolation
+- raw output storage is opt-in
+- stored artifacts use validated ids and private file modes on unix-like systems
+- direct input and child output paths have size limits to reduce memory abuse
+- malformed override rules and corrupted artifact metadata are ignored instead of being trusted
+
+## Current Non-Goals
+
+these are intentionally out of scope today:
+
+- secret redaction or content rewriting
+- command sandboxing
+- policy enforcement over what users are allowed to run
+- protection against a malicious local user who already controls the configured artifact or rule directories
