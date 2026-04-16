@@ -70,7 +70,7 @@ brew install tokenjuice
 the release flow now mirrors `autosecure`:
 
 - GitHub release uploads `sha256sums.txt`
-- `homebrew-tap.yml` updates `vincentkoc/tap`
+- the tap sync workflow updates `vincentkoc/tap`
 - the tap formula points at the GitHub release tarball
 
 ## apt / dnf / yum
