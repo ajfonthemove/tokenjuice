@@ -1,0 +1,126 @@
+name-template: "tokenjuice $NEXT_TAG"
+tag-template: "$NEXT_TAG"
+change-template: "- $TITLE (#$NUMBER) @$AUTHOR"
+change-title-escapes: '\<*_&'
+
+categories:
+  - title: "Features"
+    labels:
+      - "feature"
+      - "enhancement"
+      - "feat"
+  - title: "Fixes"
+    labels:
+      - "bug"
+      - "fix"
+  - title: "Maintenance"
+    labels:
+      - "perf"
+      - "chore"
+      - "ci"
+      - "build"
+      - "dependencies"
+      - "dep"
+      - "deps"
+      - "docs"
+      - "refactor"
+      - "test"
+      - "tests"
+  - title: "Other Changes"
+    labels:
+      - "other"
+
+exclude-labels:
+  - "skip-changelog"
+  - "no-changelog"
+
+version-resolver:
+  major:
+    labels:
+      - "major"
+  minor:
+    labels:
+      - "feat"
+      - "feature"
+      - "enhancement"
+  patch:
+    labels:
+      - "bug"
+      - "fix"
+      - "perf"
+      - "chore"
+      - "ci"
+      - "build"
+      - "dependencies"
+      - "dep"
+      - "deps"
+      - "docs"
+      - "refactor"
+      - "test"
+      - "tests"
+      - "other"
+  default: patch
+
+autolabeler:
+  - label: "feat"
+    title:
+      - '/^feat(\(.+\))?:/i'
+  - label: "feature"
+    title:
+      - '/^feature(\(.+\))?:/i'
+  - label: "enhancement"
+    title:
+      - '/^enhancement(\(.+\))?:/i'
+  - label: "fix"
+    title:
+      - '/^fix(\(.+\))?:/i'
+  - label: "bug"
+    title:
+      - '/^bug(\(.+\))?:/i'
+  - label: "perf"
+    title:
+      - '/^perf(\(.+\))?:/i'
+  - label: "refactor"
+    title:
+      - '/^refactor(\(.+\))?:/i'
+  - label: "docs"
+    title:
+      - '/^docs(\(.+\))?:/i'
+  - label: "build"
+    title:
+      - '/^build(\(.+\))?:/i'
+  - label: "ci"
+    title:
+      - '/^ci(\(.+\))?:/i'
+  - label: "test"
+    title:
+      - '/^test(\(.+\))?:/i'
+  - label: "tests"
+    title:
+      - '/^tests(\(.+\))?:/i'
+  - label: "chore"
+    title:
+      - '/^chore(\(.+\))?:/i'
+  - label: "dep"
+    title:
+      - '/^dep(\(.+\))?:/i'
+  - label: "deps"
+    title:
+      - '/^deps(\(.+\))?:/i'
+  - label: "dependencies"
+    title:
+      - '/^dependencies(\(.+\))?:/i'
+  - label: "other"
+    title:
+      - '/.*/'
+
+template: |
+  ## tokenjuice $NEXT_TAG
+
+  lean output compaction for terminal-heavy agent workflows.
+
+  ### what's new
+  $CHANGES
+
+  ### contributors
+  $CONTRIBUTORS
