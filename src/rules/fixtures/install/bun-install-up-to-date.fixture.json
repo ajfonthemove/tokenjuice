@@ -11,6 +11,8 @@
   "expect": {
     "matchedReducer": "install/bun-install",
     "family": "dependency-install",
+    "inlineText": "bun install: up to date",
+    "previewText": "bun install: up to date",
     "contains": ["bun install: up to date"],
     "excludes": ["Checked 43 installs across 71 packages (no changes)"]
   }

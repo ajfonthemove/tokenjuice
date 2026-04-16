@@ -11,6 +11,8 @@
   "expect": {
     "matchedReducer": "install/yarn-install",
     "family": "dependency-install",
+    "inlineText": "yarn install: up to date",
+    "previewText": "yarn install: up to date",
     "contains": ["yarn install: up to date"],
     "excludes": ["Already up-to-date."]
   }

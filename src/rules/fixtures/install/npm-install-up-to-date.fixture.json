@@ -11,6 +11,8 @@
   "expect": {
     "matchedReducer": "install/npm-install",
     "family": "dependency-install",
+    "inlineText": "npm install: up to date",
+    "previewText": "npm install: up to date",
     "contains": ["npm install: up to date"],
     "excludes": ["found 0 vulnerabilities"]
   }

@@ -73,6 +73,12 @@ function validateFixture(raw: unknown): raw is RuleFixture {
   if ("family" in expect && typeof expect.family !== "string") {
     return false;
   }
+  if ("inlineText" in expect && typeof expect.inlineText !== "string") {
+    return false;
+  }
+  if ("previewText" in expect && typeof expect.previewText !== "string") {
+    return false;
+  }
   if ("contains" in expect && !isStringArray(expect.contains)) {
     return false;
   }
@@ -132,6 +138,12 @@ export async function verifyBuiltinFixtures(): Promise<FixtureVerificationResult
         }
         if (fixture.expect.family && result.classification.family !== fixture.expect.family) {
           errors.push(`expected family ${fixture.expect.family}, got ${result.classification.family}`);
+        }
+        if (fixture.expect.inlineText && result.inlineText !== fixture.expect.inlineText) {
+          errors.push(`expected inlineText ${JSON.stringify(fixture.expect.inlineText)}, got ${JSON.stringify(result.inlineText)}`);
+        }
+        if (fixture.expect.previewText && result.previewText !== fixture.expect.previewText) {
+          errors.push(`expected previewText ${JSON.stringify(fixture.expect.previewText)}, got ${JSON.stringify(result.previewText)}`);
         }
         for (const snippet of fixture.expect.contains ?? []) {
           if (!searchableText.includes(snippet)) {

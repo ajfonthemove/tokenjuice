@@ -11,6 +11,8 @@
   "expect": {
     "matchedReducer": "install/pnpm-install",
     "family": "dependency-install",
+    "inlineText": "pnpm install: up to date",
+    "previewText": "pnpm install: up to date",
     "contains": ["pnpm install: up to date"],
     "excludes": ["Already up to date"]
   }

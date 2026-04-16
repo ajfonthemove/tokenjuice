@@ -189,6 +189,8 @@ export type RuleFixture = {
   expect: {
     matchedReducer?: string;
     family?: string;
+    inlineText?: string;
+    previewText?: string;
     contains?: string[];
     excludes?: string[];
   };
