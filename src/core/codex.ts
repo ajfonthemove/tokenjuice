@@ -37,6 +37,7 @@ type CodexPostToolUsePayload = {
 
 const GENERIC_FALLBACK_MIN_SAVED_CHARS = 120;
 const GENERIC_FALLBACK_MAX_RATIO = 0.75;
+const HOOK_REWRITE_MIN_SAVED_CHARS = 8;
 const CODEX_HOOK_LAST_LOG = "tokenjuice-hook.last.json";
 const CODEX_HOOK_HISTORY_LOG = "tokenjuice-hook.history.jsonl";
 const CODEX_HOOK_HISTORY_LIMIT = 200;
@@ -581,9 +582,14 @@ function getCodexRewriteSkipReason(command: string, combinedText: string, result
   const rawText = combinedText.trim();
   const rawChars = result.stats.rawChars;
   const reducedChars = result.stats.reducedChars;
+  const savedChars = rawChars - reducedChars;
 
   if (!inlineText || inlineText === rawText || reducedChars >= rawChars) {
     return "no-compaction";
+  }
+
+  if (savedChars < HOOK_REWRITE_MIN_SAVED_CHARS) {
+    return "low-savings-compaction";
   }
 
   if (result.classification.matchedReducer !== "generic/fallback") {
@@ -594,7 +600,6 @@ function getCodexRewriteSkipReason(command: string, combinedText: string, result
     return "generic-compound-command";
   }
 
-  const savedChars = rawChars - reducedChars;
   const ratio = rawChars === 0 ? 1 : reducedChars / rawChars;
   if (savedChars < GENERIC_FALLBACK_MIN_SAVED_CHARS || ratio > GENERIC_FALLBACK_MAX_RATIO) {
     return "generic-weak-compaction";

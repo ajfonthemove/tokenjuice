@@ -362,6 +362,37 @@ describe("runCodexPostToolUseHook", () => {
     expect(debug.matchedReducer).toBe("generic/fallback");
   });
 
+  it("skips rewriting low-savings compaction even for non-generic reducers", async () => {
+    const home = await createTempDir();
+    process.env.CODEX_HOME = home;
+
+    const payload = JSON.stringify({
+      hook_event_name: "PostToolUse",
+      tool_name: "Bash",
+      tool_input: {
+        command: "git status --short",
+      },
+      tool_response: " M src/core/codex.ts\n",
+    });
+
+    const { code, output } = await captureStdout(() => runCodexPostToolUseHook(payload));
+    const debug = JSON.parse(await readFile(join(home, "tokenjuice-hook.last.json"), "utf8")) as {
+      rewrote: boolean;
+      skipped?: string;
+      matchedReducer?: string;
+      rawChars?: number;
+      reducedChars?: number;
+    };
+
+    expect(code).toBe(0);
+    expect(output).toBe("");
+    expect(debug.rewrote).toBe(false);
+    expect(debug.skipped).toBe("low-savings-compaction");
+    expect(debug.matchedReducer).toBe("git/status");
+    expect(debug.rawChars).toBe(21);
+    expect(debug.reducedChars).toBe(20);
+  });
+
   it("skips auto-rewriting repository inspection commands", async () => {
     const home = await createTempDir();
     process.env.CODEX_HOME = home;
@@ -542,6 +573,7 @@ describe("runCodexPostToolUseHook", () => {
     expect(history[0]?.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(history[0]?.skipped).toBe("inspection-command");
     expect(history[0]?.tokenjuiceVersion).toBe("0.3.4");
-    expect(history[1]?.rewrote).toBe(true);
+    expect(history[1]?.rewrote).toBe(false);
+    expect(history[1]?.skipped).toBe("low-savings-compaction");
   });
 });
