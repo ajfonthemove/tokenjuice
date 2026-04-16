@@ -36,6 +36,9 @@ type CodexPostToolUsePayload = {
 
 const GENERIC_FALLBACK_MIN_SAVED_CHARS = 120;
 const GENERIC_FALLBACK_MAX_RATIO = 0.75;
+const CODEX_HOOK_LAST_LOG = "tokenjuice-hook.last.json";
+const CODEX_HOOK_HISTORY_LOG = "tokenjuice-hook.history.jsonl";
+const CODEX_HOOK_HISTORY_LIMIT = 200;
 
 export type InstallCodexHookResult = {
   hooksPath: string;
@@ -600,9 +603,34 @@ function getCodexRewriteSkipReason(command: string, combinedText: string, result
 }
 
 async function writeHookDebug(record: Record<string, unknown>): Promise<void> {
-  const debugPath = join(getCodexHome(), "tokenjuice-hook.last.json");
+  const codexHome = getCodexHome();
+  const debugPath = join(codexHome, CODEX_HOOK_LAST_LOG);
+  const historyPath = join(codexHome, CODEX_HOOK_HISTORY_LOG);
+  const enrichedRecord = {
+    timestamp: new Date().toISOString(),
+    ...record,
+  };
   await mkdir(dirname(debugPath), { recursive: true });
-  await writeFile(debugPath, `${JSON.stringify(record, null, 2)}\n`, "utf8");
+  await writeFile(debugPath, `${JSON.stringify(enrichedRecord, null, 2)}\n`, "utf8");
+
+  let historyLines: string[] = [];
+  try {
+    const currentHistory = await readFile(historyPath, "utf8");
+    historyLines = currentHistory
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+  } catch (error) {
+    if (!(error instanceof Error) || !("code" in error) || error.code !== "ENOENT") {
+      throw error;
+    }
+  }
+
+  historyLines.push(JSON.stringify(enrichedRecord));
+  if (historyLines.length > CODEX_HOOK_HISTORY_LIMIT) {
+    historyLines = historyLines.slice(-CODEX_HOOK_HISTORY_LIMIT);
+  }
+  await writeFile(historyPath, `${historyLines.join("\n")}\n`, "utf8");
 }
 
 export async function runCodexPostToolUseHook(rawText: string): Promise<number> {

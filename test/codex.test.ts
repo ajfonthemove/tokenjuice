@@ -482,4 +482,58 @@ describe("runCodexPostToolUseHook", () => {
     expect(debug.rewrote).toBe(false);
     expect(debug.skipped).toBe("explicit-raw-bypass");
   });
+
+  it("writes rolling hook history entries alongside the last snapshot", async () => {
+    const home = await createTempDir();
+    process.env.CODEX_HOME = home;
+
+    const firstPayload = JSON.stringify({
+      hook_event_name: "PostToolUse",
+      tool_name: "Bash",
+      tool_input: {
+        command: "sed -n '1,40p' src/core/codex.ts",
+      },
+      tool_response: [
+        "function example() {",
+        "  throw new AssertionError();",
+        "}",
+      ].join("\n"),
+    });
+    const secondPayload = JSON.stringify({
+      hook_event_name: "PostToolUse",
+      tool_name: "Bash",
+      tool_input: {
+        command: "git status --short",
+      },
+      tool_response: " M src/core/codex.ts\n",
+    });
+
+    await captureStdout(() => runCodexPostToolUseHook(firstPayload));
+    await captureStdout(() => runCodexPostToolUseHook(secondPayload));
+
+    const last = JSON.parse(await readFile(join(home, "tokenjuice-hook.last.json"), "utf8")) as {
+      timestamp?: string;
+      command?: string;
+    };
+    const historyLines = (await readFile(join(home, "tokenjuice-hook.history.jsonl"), "utf8"))
+      .trim()
+      .split("\n");
+    const history = historyLines.map((line) => JSON.parse(line) as {
+      timestamp?: string;
+      command?: string;
+      skipped?: string;
+      rewrote?: boolean;
+    });
+
+    expect(last.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(last.command).toBe("git status --short");
+    expect(history).toHaveLength(2);
+    expect(history.map((entry) => entry.command)).toEqual([
+      "sed -n '1,40p' src/core/codex.ts",
+      "git status --short",
+    ]);
+    expect(history[0]?.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(history[0]?.skipped).toBe("inspection-command");
+    expect(history[1]?.rewrote).toBe(true);
+  });
 });
