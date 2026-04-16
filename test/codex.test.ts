@@ -421,7 +421,11 @@ describe("runCodexPostToolUseHook", () => {
     expect(output).toBe("");
     expect(debug.rewrote).toBe(false);
     expect(debug.skipped).toBe("inspection-command");
-    expect(debug.matchedReducer).toBe("filesystem/find");
+    expect(debug.matchedReducer).toBeUndefined();
+    expect(debug.rawChars).toBeGreaterThan(0);
+    expect(debug.reducedChars).toBe(debug.rawChars);
+    expect(debug.savedChars).toBe(0);
+    expect(debug.ratio).toBe(1);
   });
 
   it.each([
@@ -433,7 +437,6 @@ describe("runCodexPostToolUseHook", () => {
         "throw new AssertionError();",
         "export function reduceExecution() {}",
       ].join("\n"),
-      reducer: "generic/fallback",
     },
     {
       label: "sed",
@@ -443,21 +446,18 @@ describe("runCodexPostToolUseHook", () => {
         "  return value === \"yes\";",
         "}",
       ].join("\n"),
-      reducer: "generic/fallback",
     },
     {
       label: "rg --files",
       command: "rg --files src/rules",
       output: Array.from({ length: 30 }, (_, index) => `src/rules/example-${index + 1}.json`).join("\n"),
-      reducer: "search/rg",
     },
     {
       label: "git ls-files",
       command: "git ls-files src",
       output: Array.from({ length: 20 }, (_, index) => `src/file-${index + 1}.ts`).join("\n"),
-      reducer: "generic/fallback",
     },
-  ])("skips auto-rewrite for $label inspection commands", async ({ command, output: toolResponse, reducer }) => {
+  ])("skips auto-rewrite for $label inspection commands", async ({ command, output: toolResponse }) => {
     const home = await createTempDir();
     process.env.CODEX_HOME = home;
 
@@ -483,8 +483,11 @@ describe("runCodexPostToolUseHook", () => {
     expect(output).toBe("");
     expect(debug.rewrote).toBe(false);
     expect(debug.skipped).toBe("inspection-command");
-    expect(debug.matchedReducer).toBe(reducer);
+    expect(debug.matchedReducer).toBeUndefined();
     expect(debug.rawChars).toBeGreaterThan(0);
+    expect(debug.reducedChars).toBe(debug.rawChars);
+    expect(debug.savedChars).toBe(0);
+    expect(debug.ratio).toBe(1);
   });
 
   it("honors tokenjuice raw bypass commands without re-compacting them", async () => {
@@ -591,6 +594,7 @@ describe("runCodexPostToolUseHook", () => {
     expect(history[0]?.tokenjuiceVersion).toBe("0.3.4");
     expect(history[0]?.savedChars).toBe(0);
     expect(history[0]?.ratio).toBe(1);
+    expect(history[0]?.matchedReducer).toBeUndefined();
     expect(history[1]?.rewrote).toBe(false);
     expect(history[1]?.skipped).toBe("low-savings-compaction");
     expect(history[1]?.savedChars).toBe(1);

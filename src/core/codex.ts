@@ -702,6 +702,16 @@ export async function runCodexPostToolUseHook(rawText: string): Promise<number> 
     return 0;
   }
 
+  if (isRepositoryInspectionCommand({ command })) {
+    const stats = buildImmediateSkipStats(combinedText);
+    await writeHookDebug({
+      ...debug,
+      ...stats,
+      skipped: "inspection-command",
+    });
+    return 0;
+  }
+
   const maxInlineChars = readPositiveIntegerEnv("TOKENJUICE_CODEX_MAX_INLINE_CHARS");
   const options: ReduceOptions = {
     ...(typeof payload.cwd === "string" && payload.cwd.trim() ? { cwd: payload.cwd } : {}),
