@@ -107,7 +107,11 @@ export type StoredArtifactMetadata = {
   ratio?: number;
 };
 
-export type ArtifactMetadataRef = StoredArtifactRef & {
+export type ArtifactMetadataRef = {
+  id: string;
+  storage: "file";
+  path?: string;
+  metadataPath: string;
   metadata: StoredArtifactMetadata;
 };
 
@@ -145,6 +149,7 @@ export type ReduceOptions = {
   classifier?: string;
   maxInlineChars?: number;
   raw?: boolean;
+  recordStats?: boolean;
   store?: boolean;
   storeDir?: string;
   cwd?: string;
@@ -179,6 +184,7 @@ export type RuleFixture = {
 
 export type WrapOptions = {
   cwd?: string;
+  recordStats?: boolean;
   store?: boolean;
   storeDir?: string;
   tee?: boolean;

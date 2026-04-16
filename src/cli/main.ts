@@ -263,6 +263,7 @@ async function runReduce(args: ParsedArgs): Promise<number> {
     {
       ...(args.classifier ? { classifier: args.classifier } : {}),
       ...(args.raw ? { raw: true } : {}),
+      recordStats: true,
       ...(args.store ? { store: true } : {}),
       ...(args.storeDir ? { storeDir: args.storeDir } : {}),
       ...(typeof args.maxInlineChars === "number" ? { maxInlineChars: args.maxInlineChars } : {}),
@@ -284,6 +285,7 @@ async function runReduceJson(args: ParsedArgs): Promise<number> {
     ...(request.options ?? {}),
     ...(args.classifier ? { classifier: args.classifier } : {}),
     ...(args.raw ? { raw: true } : {}),
+    recordStats: true,
     ...(args.store ? { store: true } : {}),
     ...(args.storeDir ? { storeDir: args.storeDir } : {}),
     ...(typeof args.maxInlineChars === "number" ? { maxInlineChars: args.maxInlineChars } : {}),
@@ -296,6 +298,7 @@ async function runWrap(args: ParsedArgs): Promise<number> {
   const wrapped = await runWrappedCommand(args.passthrough, {
     tee: args.tee,
     ...(args.raw ? { raw: true } : {}),
+    recordStats: true,
     ...(args.store ? { store: true } : {}),
     ...(args.storeDir ? { storeDir: args.storeDir } : {}),
     ...(typeof args.maxInlineChars === "number" ? { maxInlineChars: args.maxInlineChars } : {}),

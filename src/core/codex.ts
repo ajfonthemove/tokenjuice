@@ -595,6 +595,7 @@ export async function runCodexPostToolUseHook(rawText: string): Promise<number> 
   const options: ReduceOptions = {
     ...(typeof payload.cwd === "string" && payload.cwd.trim() ? { cwd: payload.cwd } : {}),
     ...(typeof maxInlineChars === "number" ? { maxInlineChars } : {}),
+    recordStats: true,
     ...(shouldStoreFromEnv() ? { store: true } : {}),
   };
 

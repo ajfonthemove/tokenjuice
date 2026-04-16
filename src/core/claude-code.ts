@@ -507,6 +507,7 @@ export async function runClaudeCodePostToolUseHook(rawText: string): Promise<num
   const options: ReduceOptions = {
     ...(typeof payload.cwd === "string" && payload.cwd.trim() ? { cwd: payload.cwd } : {}),
     ...(typeof maxInlineChars === "number" ? { maxInlineChars } : {}),
+    recordStats: true,
     ...(shouldStoreFromEnv() ? { store: true } : {}),
   };
 

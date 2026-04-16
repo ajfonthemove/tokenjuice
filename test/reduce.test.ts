@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { getArtifact, reduceExecution } from "../src/index.js";
+import { getArtifact, listArtifactMetadata, reduceExecution, statsArtifacts } from "../src/index.js";
 import { countTextChars } from "../src/core/text.js";
 
 const tempDirs: string[] = [];
@@ -171,6 +171,36 @@ describe("reduceExecution", () => {
     expect(result.rawRef?.id).toMatch(/^tj_/u);
     const artifact = await getArtifact(result.rawRef!.id, storeDir);
     expect(artifact?.rawText).toContain("TODO one");
+  });
+
+  it("records stats metadata without storing raw output when requested", async () => {
+    const storeDir = await createTempDir();
+    await reduceExecution(
+      {
+        toolName: "exec",
+        command: "git status",
+        argv: ["git", "status"],
+        combinedText: [
+          "On branch main",
+          "Changes not staged for commit:",
+          "  modified: src/index.ts",
+        ].join("\n"),
+        exitCode: 0,
+      },
+      {
+        recordStats: true,
+        storeDir,
+      },
+    );
+
+    const metadata = await listArtifactMetadata(storeDir);
+    const stats = statsArtifacts(metadata.map((entry) => ({ metadata: entry.metadata })));
+
+    expect(metadata).toHaveLength(1);
+    expect(metadata[0]?.path).toBeUndefined();
+    expect(metadata[0]?.metadata.command).toBe("git status");
+    expect(stats.daily).toHaveLength(1);
+    expect(stats.daily[0]?.count).toBe(1);
   });
 
   it("supports a raw bypass that returns unaltered output", async () => {

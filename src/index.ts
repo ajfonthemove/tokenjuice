@@ -1,4 +1,4 @@
-export { getArtifact, isValidArtifactId, listArtifactMetadata, listArtifacts, storeArtifact } from "./core/artifacts.js";
+export { getArtifact, isValidArtifactId, listArtifactMetadata, listArtifacts, storeArtifact, storeArtifactMetadata } from "./core/artifacts.js";
 export { buildAnalysisEntry, discoverCandidates, doctorArtifacts, statsArtifacts } from "./core/analysis.js";
 export { classifyExecution } from "./core/classify.js";
 export { doctorClaudeCodeHook, installClaudeCodeHook, runClaudeCodePostToolUseHook } from "./core/claude-code.js";

@@ -67,6 +67,13 @@ function buildArtifactPaths(id: string, storeDir?: string): StoredArtifactRef {
   };
 }
 
+function buildMetadataOnlyPath(id: string, storeDir?: string): string {
+  if (!isValidArtifactId(id)) {
+    throw new Error(`invalid artifact id: ${id}`);
+  }
+  return join(artifactBaseDir(storeDir), `${id}.meta.json`);
+}
+
 export async function storeArtifact(input: StoredArtifactInput, storeDir?: string): Promise<StoredArtifactRef> {
   const id = `tj_${randomUUID().slice(0, 12)}`;
   const ref = buildArtifactPaths(id, storeDir);
@@ -92,6 +99,30 @@ export async function storeArtifact(input: StoredArtifactInput, storeDir?: strin
   ]);
 
   return ref;
+}
+
+export async function storeArtifactMetadata(input: StoredArtifactInput, storeDir?: string): Promise<ArtifactMetadataRef> {
+  const id = `tj_${randomUUID().slice(0, 12)}`;
+  const metadataPath = buildMetadataOnlyPath(id, storeDir);
+  const metadata: StoredArtifactMetadata = {
+    createdAt: new Date().toISOString(),
+    classification: input.classification,
+    rawChars: input.stats?.rawChars ?? countTextChars(stripAnsi(input.rawText)),
+    ...(input.input.toolName ? { toolName: input.input.toolName } : {}),
+    ...(input.input.command ? { command: input.input.command } : {}),
+    ...(typeof input.input.exitCode === "number" ? { exitCode: input.input.exitCode } : {}),
+    ...(input.stats ? { reducedChars: input.stats.reducedChars, ratio: input.stats.ratio } : {}),
+  };
+
+  await mkdir(artifactBaseDir(storeDir), { recursive: true, mode: 0o700 });
+  await writeFile(metadataPath, JSON.stringify(metadata, null, 2), { encoding: "utf8", mode: 0o600 });
+
+  return {
+    id,
+    storage: "file",
+    metadataPath,
+    metadata,
+  };
 }
 
 export async function getArtifact(id: string, storeDir?: string): Promise<StoredArtifact | null> {
@@ -138,24 +169,43 @@ export async function listArtifacts(storeDir?: string): Promise<StoredArtifactRe
 }
 
 export async function listArtifactMetadata(storeDir?: string): Promise<ArtifactMetadataRef[]> {
-  const refs = await listArtifacts(storeDir);
-  const metadata = await Promise.all(
-    refs.map(async (ref) => {
-      try {
-        const raw = await readFile(ref.metadataPath, "utf8");
-        const parsed = JSON.parse(raw) as unknown;
-        if (!isStoredArtifactMetadata(parsed)) {
-          return null;
-        }
-        return {
-          ...ref,
-          metadata: parsed,
-        };
-      } catch {
-        return null;
-      }
-    }),
-  );
+  const base = artifactBaseDir(storeDir);
+  try {
+    const files = await readdir(base);
+    const metadata = await Promise.all(
+      files
+        .filter((name) => name.endsWith(".json"))
+        .map(async (name) => {
+          const rawId = name.endsWith(".meta.json") ? name.replace(/\.meta\.json$/u, "") : name.replace(/\.json$/u, "");
+          if (!isValidArtifactId(rawId)) {
+            return null;
+          }
 
-  return metadata.filter((entry): entry is ArtifactMetadataRef => entry !== null);
+          const metadataPath = join(base, name);
+          try {
+            const raw = await readFile(metadataPath, "utf8");
+            const parsed = JSON.parse(raw) as unknown;
+            if (!isStoredArtifactMetadata(parsed)) {
+              return null;
+            }
+            const path = name.endsWith(".meta.json") ? undefined : join(base, `${rawId}.txt`);
+            return {
+              id: rawId,
+              storage: "file" as const,
+              ...(path ? { path } : {}),
+              metadataPath,
+              metadata: parsed,
+            };
+          } catch {
+            return null;
+          }
+        }),
+    );
+
+    return metadata
+      .filter((entry): entry is ArtifactMetadataRef => entry !== null)
+      .sort((left, right) => right.metadata.createdAt.localeCompare(left.metadata.createdAt));
+  } catch {
+    return [];
+  }
 }

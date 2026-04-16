@@ -2,7 +2,7 @@ import { loadRules } from "./rules.js";
 import { classifyExecution, matchesRule } from "./classify.js";
 import { normalizeExecutionInput } from "./command.js";
 import { clampText, clampTextMiddle, countTextChars, dedupeAdjacent, headTail, normalizeLines, pluralize, stripAnsi, trimEmptyEdges } from "./text.js";
-import { storeArtifact } from "./artifacts.js";
+import { storeArtifact, storeArtifactMetadata } from "./artifacts.js";
 
 import type { CompactResult, CompiledRule, ReduceOptions, ToolExecutionInput } from "../types.js";
 
@@ -413,6 +413,21 @@ export async function reduceExecutionWithRules(
           opts.storeDir,
         )
       : undefined;
+    if (!opts.store && opts.recordStats) {
+      await storeArtifactMetadata(
+        {
+          input: normalizedInput,
+          rawText,
+          classification,
+          stats: {
+            rawChars: measuredRawChars,
+            reducedChars: measuredRawChars,
+            ratio: 1,
+          },
+        },
+        opts.storeDir,
+      );
+    }
 
     return {
       inlineText: rawText,
@@ -467,6 +482,18 @@ export async function reduceExecutionWithRules(
     reducedChars,
     ratio: measuredRawChars === 0 ? 1 : reducedChars / measuredRawChars,
   };
+
+  if (!opts.store && opts.recordStats) {
+    await storeArtifactMetadata(
+      {
+        input: normalizedInput,
+        rawText,
+        classification,
+        stats,
+      },
+      opts.storeDir,
+    );
+  }
 
   return {
     inlineText,
