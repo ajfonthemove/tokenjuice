@@ -69,10 +69,12 @@ export async function runWrappedCommand(argv: string[], opts: WrapOptions = {}):
 
     let stdout: CapturedStream = { text: "", bytes: 0, truncated: false };
     let stderr: CapturedStream = { text: "", bytes: 0, truncated: false };
+    let combined: CapturedStream = { text: "", bytes: 0, truncated: false };
 
     child.stdout.on("data", (chunk: Buffer) => {
       const text = chunk.toString("utf8");
       stdout = appendCapturedChunk(stdout, chunk, maxCaptureBytes);
+      combined = appendCapturedChunk(combined, chunk, maxCaptureBytes);
       if (opts.tee) {
         process.stdout.write(text);
       }
@@ -81,6 +83,7 @@ export async function runWrappedCommand(argv: string[], opts: WrapOptions = {}):
     child.stderr.on("data", (chunk: Buffer) => {
       const text = chunk.toString("utf8");
       stderr = appendCapturedChunk(stderr, chunk, maxCaptureBytes);
+      combined = appendCapturedChunk(combined, chunk, maxCaptureBytes);
       if (opts.tee) {
         process.stderr.write(text);
       }
@@ -96,9 +99,11 @@ export async function runWrappedCommand(argv: string[], opts: WrapOptions = {}):
             argv,
             stdout: stdout.text,
             stderr: stderr.text,
+            combinedText: combined.text,
             exitCode: code ?? 1,
           },
           {
+            raw: opts.raw ?? false,
             store: opts.store ?? false,
             ...(opts.storeDir ? { storeDir: opts.storeDir } : {}),
             ...(typeof opts.maxInlineChars === "number" ? { maxInlineChars: opts.maxInlineChars } : {}),

@@ -32,6 +32,7 @@ describe("parseReduceJsonRequest", () => {
       },
       options: {
         classifier: "tests/pnpm-test",
+        raw: true,
         store: true,
         maxInlineChars: 800,
       },
@@ -46,6 +47,7 @@ describe("parseReduceJsonRequest", () => {
       },
       options: {
         classifier: "tests/pnpm-test",
+        raw: true,
         store: true,
         maxInlineChars: 800,
       },
@@ -80,6 +82,17 @@ describe("parseReduceJsonRequest", () => {
         maxInlineChars: 0,
       },
     })).toThrow("positive integer");
+  });
+
+  it("rejects invalid raw option types", () => {
+    expect(() => parseReduceJsonRequest({
+      input: {
+        toolName: "exec",
+      },
+      options: {
+        raw: "yes",
+      },
+    })).toThrow("options.raw");
   });
 
   it("rejects NUL bytes in string fields", () => {

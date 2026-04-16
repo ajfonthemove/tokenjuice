@@ -25,6 +25,7 @@ type ParsedArgs = {
   exitCode: number | undefined;
   store: boolean;
   tee: boolean;
+  raw: boolean;
   storeDir: string | undefined;
   maxInlineChars: number | undefined;
   maxCaptureBytes: number | undefined;
@@ -46,9 +47,9 @@ function printUsage(): void {
       "usage:",
       "  tokenjuice --help",
       "  tokenjuice --version",
-      "  tokenjuice reduce [file] [--format text|json] [--classifier <id>] [--store]",
+      "  tokenjuice reduce [file] [--format text|json] [--classifier <id>] [--store] [--raw|--full]",
       "  tokenjuice reduce-json [file]",
-      "  tokenjuice wrap -- <command> [args...] [--tee] [--store] [--max-capture-bytes <n>]",
+      "  tokenjuice wrap [--raw|--full] -- <command> [args...] [--tee] [--store] [--max-capture-bytes <n>]",
       "  tokenjuice install codex",
       "  tokenjuice ls",
       "  tokenjuice cat <artifact-id>",
@@ -73,6 +74,7 @@ function parseArgs(argv: string[]): ParsedArgs {
   let exitCode: number | undefined;
   let store = false;
   let tee = false;
+  let raw = false;
   let storeDir: string | undefined;
   let maxInlineChars: number | undefined;
   let maxCaptureBytes: number | undefined;
@@ -137,6 +139,11 @@ function parseArgs(argv: string[]): ParsedArgs {
         store = true;
         index += 1;
         break;
+      case "--raw":
+      case "--full":
+        raw = true;
+        index += 1;
+        break;
       case "--tee":
         tee = true;
         index += 1;
@@ -184,6 +191,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     exitCode,
     store,
     tee,
+    raw,
     storeDir,
     maxInlineChars,
     maxCaptureBytes,
@@ -224,12 +232,12 @@ async function readTextInput(file: string | undefined, maxBytes = DEFAULT_MAX_IN
   return await readFile(file, "utf8");
 }
 
-function emit(format: Format, value: unknown, text: string): void {
+function emit(format: Format, value: unknown, text: string, exactText = false): void {
   if (format === "json") {
     process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
     return;
   }
-  process.stdout.write(`${text}\n`);
+  process.stdout.write(exactText ? text : `${text}\n`);
 }
 
 async function runReduce(args: ParsedArgs): Promise<number> {
@@ -244,12 +252,13 @@ async function runReduce(args: ParsedArgs): Promise<number> {
     },
     {
       ...(args.classifier ? { classifier: args.classifier } : {}),
+      ...(args.raw ? { raw: true } : {}),
       ...(args.store ? { store: true } : {}),
       ...(args.storeDir ? { storeDir: args.storeDir } : {}),
       ...(typeof args.maxInlineChars === "number" ? { maxInlineChars: args.maxInlineChars } : {}),
     },
   );
-  emit(args.format, result, result.inlineText);
+  emit(args.format, result, result.inlineText, args.raw);
   return 0;
 }
 
@@ -264,6 +273,7 @@ async function runReduceJson(args: ParsedArgs): Promise<number> {
   const result = await reduceExecution(request.input, {
     ...(request.options ?? {}),
     ...(args.classifier ? { classifier: args.classifier } : {}),
+    ...(args.raw ? { raw: true } : {}),
     ...(args.store ? { store: true } : {}),
     ...(args.storeDir ? { storeDir: args.storeDir } : {}),
     ...(typeof args.maxInlineChars === "number" ? { maxInlineChars: args.maxInlineChars } : {}),
@@ -275,12 +285,13 @@ async function runReduceJson(args: ParsedArgs): Promise<number> {
 async function runWrap(args: ParsedArgs): Promise<number> {
   const wrapped = await runWrappedCommand(args.passthrough, {
     tee: args.tee,
+    ...(args.raw ? { raw: true } : {}),
     ...(args.store ? { store: true } : {}),
     ...(args.storeDir ? { storeDir: args.storeDir } : {}),
     ...(typeof args.maxInlineChars === "number" ? { maxInlineChars: args.maxInlineChars } : {}),
     ...(typeof args.maxCaptureBytes === "number" ? { maxCaptureBytes: args.maxCaptureBytes } : {}),
   });
-  emit(args.format, wrapped, wrapped.result.inlineText);
+  emit(args.format, wrapped, wrapped.result.inlineText, args.raw);
   return wrapped.exitCode;
 }
 

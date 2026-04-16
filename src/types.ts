@@ -144,6 +144,7 @@ export type StoredArtifact = {
 export type ReduceOptions = {
   classifier?: string;
   maxInlineChars?: number;
+  raw?: boolean;
   store?: boolean;
   storeDir?: string;
   cwd?: string;
@@ -181,6 +182,7 @@ export type WrapOptions = {
   store?: boolean;
   storeDir?: string;
   tee?: boolean;
+  raw?: boolean;
   maxInlineChars?: number;
   maxCaptureBytes?: number;
 };

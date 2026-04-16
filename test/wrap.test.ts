@@ -59,4 +59,18 @@ describe("runWrappedCommand", () => {
     expect(wrapped.stdout).toContain("[tokenjuice: output truncated]");
     expect(wrapped.result.inlineText).toContain("[tokenjuice: output truncated]");
   });
+
+  it("supports a raw bypass for wrapped commands", async () => {
+    const wrapped = await runWrappedCommand([
+      "node",
+      "-e",
+      "process.stdout.write('usage: cmd\\n\\nflag\\n');",
+    ], {
+      raw: true,
+      maxInlineChars: 4,
+    });
+
+    expect(wrapped.result.inlineText).toBe("usage: cmd\n\nflag\n");
+    expect(wrapped.result.stats.ratio).toBe(1);
+  });
 });

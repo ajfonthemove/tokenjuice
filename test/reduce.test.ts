@@ -41,7 +41,7 @@ describe("reduceExecution", () => {
     expect(result.inlineText).toContain("Changes not staged:");
     expect(result.inlineText).toContain("M: src/index.ts");
     expect(result.inlineText).toContain("Untracked files:");
-    expect(result.inlineText).toContain("??: new-file.ts");
+    expect(result.inlineText).toContain("?? new-file.ts");
   });
 
   it("derives argv from the command string when callers only pass command", async () => {
@@ -90,7 +90,9 @@ describe("reduceExecution", () => {
       "deleted file": 1,
       "untracked file": 1,
     });
-    expect(result.inlineText).toContain("??: scripts/live-smoke.mjs");
+    expect(result.inlineText).not.toContain("modified files");
+    expect(result.inlineText).toContain("?? scripts/live-smoke.mjs");
+    expect(result.stats.reducedChars).toBeLessThanOrEqual(result.stats.rawChars);
   });
 
   it("rewrites long git status output into compact branch and file summaries", async () => {
@@ -171,6 +173,27 @@ describe("reduceExecution", () => {
     expect(artifact?.rawText).toContain("TODO one");
   });
 
+  it("supports a raw bypass that returns unaltered output", async () => {
+    const rawText = "Usage: pnpm test\n\n  --watch  watch mode\n";
+    const result = await reduceExecution(
+      {
+        toolName: "exec",
+        command: "pnpm test --help",
+        argv: ["pnpm", "test", "--help"],
+        combinedText: rawText,
+        exitCode: 0,
+      },
+      {
+        raw: true,
+        maxInlineChars: 10,
+      },
+    );
+
+    expect(result.inlineText).toBe(rawText);
+    expect(result.stats.ratio).toBe(1);
+    expect(result.stats.reducedChars).toBe(result.stats.rawChars);
+  });
+
   it("falls back cleanly for generic output", async () => {
     const result = await reduceExecution({
       toolName: "exec",
@@ -199,6 +222,30 @@ describe("reduceExecution", () => {
 
     expect(result.classification.matchedReducer).toBe("tests/pnpm-test");
     expect(result.inlineText).toContain("exit 1");
+  });
+
+  it("does not prepend awkward pass counters for clean test output", async () => {
+    const result = await reduceExecution({
+      toolName: "exec",
+      command: "pnpm test test/reduce.test.ts",
+      argv: ["pnpm", "test", "test/reduce.test.ts"],
+      combinedText: [
+        "> tokenjuice@0.2.0 test /repo",
+        "> vitest run test/reduce.test.ts",
+        "",
+        " RUN  v3.2.4 /repo",
+        "",
+        " ✓ test/reduce.test.ts (44 tests) 56ms",
+        "",
+        " Test Files  1 passed (1)",
+        "      Tests  44 passed (44)",
+      ].join("\n"),
+      exitCode: 0,
+    });
+
+    expect(result.classification.matchedReducer).toBe("tests/pnpm-test");
+    expect(result.inlineText).not.toContain("passeds");
+    expect(result.stats.reducedChars).toBeLessThanOrEqual(result.stats.rawChars);
   });
 
   it("matches tsc output to the TypeScript build reducer", async () => {

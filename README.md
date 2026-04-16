@@ -14,6 +14,7 @@ the important bit is the boundary:
 
 - the original command still runs
 - tokenjuice compacts the observed output after execution
+- `--raw` / `--full` gives you an explicit unaltered escape hatch when you need it
 - raw output can be stored locally when you explicitly ask for it
 - the harness gets a smaller, more useful payload instead of a wall of terminal junk
 
@@ -61,6 +62,7 @@ tokenjuice --version
 tokenjuice reduce [file]
 tokenjuice reduce-json [file]
 tokenjuice wrap -- <command> [args...]
+tokenjuice wrap --raw -- <command> [args...]
 tokenjuice wrap --store -- <command> [args...]
 tokenjuice install codex
 tokenjuice ls
@@ -104,6 +106,23 @@ important detail:
 - raw command execution logs are still raw
 
 library-side adapters can also use `runReduceJsonCli(...)` to call the CLI without rebuilding the child-process + JSON plumbing themselves.
+
+when a reducer gets it wrong or the engine needs the untouched output, use the explicit bypass:
+
+```bash
+tokenjuice wrap --raw -- pnpm --help
+tokenjuice wrap --full -- git status
+```
+
+for machine callers, set:
+
+```json
+{
+  "options": {
+    "raw": true
+  }
+}
+```
 
 envelope payload:
 

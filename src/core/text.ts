@@ -171,6 +171,10 @@ export function clampTextMiddle(text: string, maxChars: number): string {
 }
 
 export function pluralize(count: number, noun: string): string {
+  if (/(?:passed|failed|skipped)$/u.test(noun)) {
+    return `${count} ${noun}`;
+  }
+
   if (count === 1) {
     return `${count} ${noun}`;
   }

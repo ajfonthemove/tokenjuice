@@ -52,7 +52,7 @@ function rewriteGitStatusLine(line: string): string | null {
     return `R: ${line.replace(/^\s*renamed:\s+/u, "").trim()}`;
   }
   if (/^\?\?\s+/u.test(trimmed)) {
-    return `??: ${trimmed.replace(/^\?\?\s+/u, "").trim()}`;
+    return `?? ${trimmed.replace(/^\?\?\s+/u, "").trim()}`;
   }
 
   const porcelainMatch = line.match(/^([ MADRCU?!]{2})\s+(.+)$/u);
@@ -80,7 +80,7 @@ function rewriteGitStatusLines(lines: string[]): string[] {
       }
 
       if (section === "untracked" && /^\s{2,}\S/u.test(line) && !/^\s*(?:modified:|new file:|deleted:|renamed:)/u.test(line)) {
-        return `??: ${trimmed}`;
+        return `?? ${trimmed}`;
       }
 
       return rewriteGitStatusLine(line);
@@ -324,6 +324,7 @@ function buildPassthroughText(input: ToolExecutionInput, rawText: string): strin
 }
 
 function formatInline(
+  classification: { family: string },
   input: ToolExecutionInput,
   summary: string,
   facts: Record<string, number>,
@@ -336,7 +337,16 @@ function formatInline(
   if (input.exitCode && input.exitCode !== 0) {
     lines.push(`exit ${input.exitCode}`);
   }
-  if (factParts.length > 0) {
+
+  const shouldIncludeFacts = classification.family === "search"
+    || (
+      classification.family !== "git-status"
+      && classification.family !== "help"
+      && summary.includes("omitted")
+    )
+    || (classification.family === "test-results" && (input.exitCode ?? 0) !== 0);
+
+  if (shouldIncludeFacts && factParts.length > 0) {
     lines.push(factParts.join(", "));
   }
   lines.push(summary);
@@ -355,9 +365,14 @@ function selectInlineText(
   }
 
   const passthroughText = buildPassthroughText(input, rawText);
+  const rawChars = countTextChars(stripAnsi(rawText));
+  const compactChars = countTextChars(compactText);
   const passthroughLimit = classification.family === "help" ? maxInlineChars : TINY_OUTPUT_MAX_CHARS;
   if (countTextChars(passthroughText) > passthroughLimit) {
     return compactText;
+  }
+  if (rawChars <= maxInlineChars && compactChars >= rawChars) {
+    return passthroughText;
   }
   if (countTextChars(passthroughText) <= countTextChars(compactText)) {
     return passthroughText;
@@ -378,9 +393,39 @@ export async function reduceExecutionWithRules(
   opts: ReduceOptions = {},
 ): Promise<CompactResult> {
   const normalizedInput = normalizeExecutionInput(input);
-  const classification = classifyExecution(normalizedInput, rules, opts.classifier);
   const rawText = buildRawText(normalizedInput);
   const measuredRawChars = countTextChars(stripAnsi(rawText));
+  const classification = classifyExecution(normalizedInput, rules, opts.classifier);
+
+  if (opts.raw) {
+    const rawRef = opts.store
+      ? await storeArtifact(
+          {
+            input: normalizedInput,
+            rawText,
+            classification,
+            stats: {
+              rawChars: measuredRawChars,
+              reducedChars: measuredRawChars,
+              ratio: 1,
+            },
+          },
+          opts.storeDir,
+        )
+      : undefined;
+
+    return {
+      inlineText: rawText,
+      ...(rawRef ? { rawRef } : {}),
+      stats: {
+        rawChars: measuredRawChars,
+        reducedChars: measuredRawChars,
+        ratio: 1,
+      },
+      classification,
+    };
+  }
+
   const matchedRule = rules.find((rule) => rule.rule.id === classification.matchedReducer)
     ?? rules.find((rule) => rule.rule.id === "generic/fallback");
 
@@ -389,7 +434,7 @@ export async function reduceExecutionWithRules(
   }
 
   const { summary, facts } = applyRule(matchedRule, normalizedInput, rawText);
-  const compactText = formatInline(normalizedInput, summary || "(no output)", facts);
+  const compactText = formatInline(classification, normalizedInput, summary || "(no output)", facts);
   const maxInlineChars = opts.maxInlineChars ?? 1200;
   const selectedText = selectInlineText(classification, normalizedInput, rawText, compactText, maxInlineChars);
   const clamp = classification.family === "help" || selectedText.includes("\n") ? clampTextMiddle : clampText;

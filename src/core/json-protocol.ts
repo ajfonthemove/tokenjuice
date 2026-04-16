@@ -106,6 +106,7 @@ function validateReduceOptions(raw: unknown): { ok: true; value: ReduceOptions }
   const errors: string[] = [];
   validateOptionalString(raw.classifier, "options.classifier", errors);
   validateOptionalNumber(raw.maxInlineChars, "options.maxInlineChars", errors);
+  validateOptionalBoolean(raw.raw, "options.raw", errors);
   validateOptionalBoolean(raw.store, "options.store", errors);
   validateOptionalString(raw.storeDir, "options.storeDir", errors);
   validateOptionalString(raw.cwd, "options.cwd", errors);
