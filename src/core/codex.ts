@@ -2,6 +2,7 @@ import { constants as fsConstants } from "node:fs";
 import { access, mkdir, readFile, readdir, rename, stat, writeFile } from "node:fs/promises";
 import { delimiter, dirname, isAbsolute, join, resolve } from "node:path";
 import { homedir } from "node:os";
+import packageJson from "../../package.json" with { type: "json" };
 
 import { isCompoundShellCommand, isRepositoryInspectionCommand } from "./command.js";
 import { reduceExecution } from "./reduce.js";
@@ -608,6 +609,8 @@ async function writeHookDebug(record: Record<string, unknown>): Promise<void> {
   const historyPath = join(codexHome, CODEX_HOOK_HISTORY_LOG);
   const enrichedRecord = {
     timestamp: new Date().toISOString(),
+    tokenjuiceVersion: packageJson.version,
+    hookCommandPath: process.argv[1],
     ...record,
   };
   await mkdir(dirname(debugPath), { recursive: true });

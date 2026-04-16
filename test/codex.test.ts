@@ -514,6 +514,8 @@ describe("runCodexPostToolUseHook", () => {
     const last = JSON.parse(await readFile(join(home, "tokenjuice-hook.last.json"), "utf8")) as {
       timestamp?: string;
       command?: string;
+      tokenjuiceVersion?: string;
+      hookCommandPath?: string;
     };
     const historyLines = (await readFile(join(home, "tokenjuice-hook.history.jsonl"), "utf8"))
       .trim()
@@ -523,10 +525,15 @@ describe("runCodexPostToolUseHook", () => {
       command?: string;
       skipped?: string;
       rewrote?: boolean;
+      tokenjuiceVersion?: string;
+      hookCommandPath?: string;
     });
 
     expect(last.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(last.command).toBe("git status --short");
+    expect(last.tokenjuiceVersion).toBe("0.3.4");
+    expect(typeof last.hookCommandPath).toBe("string");
+    expect(last.hookCommandPath).not.toBe("");
     expect(history).toHaveLength(2);
     expect(history.map((entry) => entry.command)).toEqual([
       "sed -n '1,40p' src/core/codex.ts",
@@ -534,6 +541,7 @@ describe("runCodexPostToolUseHook", () => {
     ]);
     expect(history[0]?.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(history[0]?.skipped).toBe("inspection-command");
+    expect(history[0]?.tokenjuiceVersion).toBe("0.3.4");
     expect(history[1]?.rewrote).toBe(true);
   });
 });
