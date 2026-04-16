@@ -155,6 +155,22 @@ describe("rules", () => {
     expect(fixtures).toHaveLength(100);
   });
 
+  it("keeps builtin fixture inventory aligned with builtin rules", async () => {
+    const fixtures = await loadBuiltinFixtures();
+    const rules = await loadBuiltinRules();
+    const fixtureRuleIds = new Set(fixtures.map(({ fixture }) => fixture.ruleId));
+    const fixtureIds = fixtures.map(({ fixture }) => fixture.id);
+    const builtinRuleIds = rules.map((rule) => rule.rule.id);
+
+    expect(new Set(fixtureIds).size).toBe(fixtureIds.length);
+    expect(
+      builtinRuleIds.filter((id) => !fixtureRuleIds.has(id)),
+    ).toEqual([]);
+    expect(
+      [...fixtureRuleIds].filter((id) => !builtinRuleIds.includes(id)),
+    ).toEqual([]);
+  });
+
   it("verifies builtin fixtures cleanly", async () => {
     const results = await verifyBuiltinFixtures();
     const failed = results.filter((result) => !result.ok);

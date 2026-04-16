@@ -121,18 +121,36 @@ export async function loadBuiltinFixtures(): Promise<Array<{ fixture: RuleFixtur
       };
     }),
   );
+  const duplicateIds = new Map<string, string[]>();
+  for (const { fixture, path } of fixtures) {
+    const group = duplicateIds.get(fixture.id) ?? [];
+    group.push(path);
+    duplicateIds.set(fixture.id, group);
+  }
+  for (const [id, paths] of duplicateIds) {
+    if (paths.length > 1) {
+      throw new Error(`duplicate fixture id ${id}: ${paths.join(", ")}`);
+    }
+  }
   fixtureCache.set(root, fixtures);
   return fixtures;
 }
 
 export async function verifyBuiltinFixtures(): Promise<FixtureVerificationResult[]> {
+  const root = fixturesRoot();
   const fixtures = await loadBuiltinFixtures();
   const rules = await loadBuiltinRules();
+  const knownRuleIds = new Set(rules.map((rule) => rule.rule.id));
+  const coveredRuleIds = new Set<string>();
 
-  return await Promise.all(
+  const results = await Promise.all(
     fixtures.map(async ({ fixture, path }) => {
       const errors: string[] = [];
+      coveredRuleIds.add(fixture.ruleId);
       try {
+        if (!knownRuleIds.has(fixture.ruleId)) {
+          errors.push(`unknown builtin ruleId: ${fixture.ruleId}`);
+        }
         const result = await reduceExecutionWithRules(fixture.input, rules, {
           ...(fixture.input.cwd ? { cwd: fixture.input.cwd } : {}),
           maxInlineChars: 5000,
@@ -185,6 +203,17 @@ export async function verifyBuiltinFixtures(): Promise<FixtureVerificationResult
       };
     }),
   );
+  const missingCoverage = rules
+    .map((rule) => rule.rule.id)
+    .filter((id) => !coveredRuleIds.has(id))
+    .map((ruleId) => ({
+      id: `coverage:${ruleId}`,
+      ruleId,
+      ok: false,
+      path: root,
+      errors: [`missing builtin fixture coverage for rule ${ruleId}`],
+    }));
+  return [...results, ...missingCoverage];
 }
 
 export function clearFixtureCache(): void {
