@@ -4,6 +4,8 @@
   "description": "Compact Playwright test output while preserving failing specs and summary lines.",
   "match": {
     "toolNames": ["exec"],
+    "argv0": ["playwright", "pnpm", "npx", "bunx", "yarn", "npm"],
+    "argvIncludes": [["playwright"], ["test"]],
     "commandIncludes": ["playwright", "test"]
   },
   "transforms": {
