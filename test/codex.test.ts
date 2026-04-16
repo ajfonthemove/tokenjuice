@@ -389,6 +389,69 @@ describe("runCodexPostToolUseHook", () => {
     expect(debug.matchedReducer).toBe("filesystem/find");
   });
 
+  it.each([
+    {
+      label: "cat",
+      command: "cat src/core/reduce.ts",
+      output: [
+        "import { loadRules } from \"./rules.js\";",
+        "throw new AssertionError();",
+        "export function reduceExecution() {}",
+      ].join("\n"),
+      reducer: "generic/fallback",
+    },
+    {
+      label: "sed",
+      command: "sed -n '560,620p' src/core/codex.ts",
+      output: [
+        "function shouldStoreFromEnv(): boolean {",
+        "  return value === \"yes\";",
+        "}",
+      ].join("\n"),
+      reducer: "generic/fallback",
+    },
+    {
+      label: "rg --files",
+      command: "rg --files src/rules",
+      output: Array.from({ length: 30 }, (_, index) => `src/rules/example-${index + 1}.json`).join("\n"),
+      reducer: "search/rg",
+    },
+    {
+      label: "git ls-files",
+      command: "git ls-files src",
+      output: Array.from({ length: 20 }, (_, index) => `src/file-${index + 1}.ts`).join("\n"),
+      reducer: "generic/fallback",
+    },
+  ])("skips auto-rewrite for $label inspection commands", async ({ command, output: toolResponse, reducer }) => {
+    const home = await createTempDir();
+    process.env.CODEX_HOME = home;
+
+    const payload = JSON.stringify({
+      hook_event_name: "PostToolUse",
+      tool_name: "Bash",
+      tool_input: {
+        command,
+      },
+      tool_response: toolResponse,
+    });
+
+    const { code, output } = await captureStdout(() => runCodexPostToolUseHook(payload));
+    const debug = JSON.parse(await readFile(join(home, "tokenjuice-hook.last.json"), "utf8")) as {
+      rewrote: boolean;
+      skipped?: string;
+      matchedReducer?: string;
+      rawChars?: number;
+      reducedChars?: number;
+    };
+
+    expect(code).toBe(0);
+    expect(output).toBe("");
+    expect(debug.rewrote).toBe(false);
+    expect(debug.skipped).toBe("inspection-command");
+    expect(debug.matchedReducer).toBe(reducer);
+    expect(debug.rawChars).toBeGreaterThan(0);
+  });
+
   it("honors tokenjuice raw bypass commands without re-compacting them", async () => {
     const home = await createTempDir();
     process.env.CODEX_HOME = home;

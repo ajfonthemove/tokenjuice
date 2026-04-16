@@ -75,6 +75,28 @@ describe("runReduceJsonCli", () => {
     ).rejects.toThrow("broken on purpose");
   });
 
+  it("does not leak unhandled EPIPE when the child exits before reading stdin", async () => {
+    const scriptPath = await writeScript(`
+      process.stderr.write("no stdin wanted\\n");
+      process.exit(7);
+    `);
+
+    await expect(
+      runReduceJsonCli(
+        {
+          input: {
+            toolName: "exec",
+            command: "fake command",
+            combinedText: "payload",
+          },
+        },
+        {
+          command: [process.execPath, scriptPath],
+        },
+      ),
+    ).rejects.toThrow("no stdin wanted");
+  });
+
   it("rejects invalid JSON output", async () => {
     const scriptPath = await writeScript(`
       process.stdout.write("not-json");

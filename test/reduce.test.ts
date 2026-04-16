@@ -259,6 +259,49 @@ describe("reduceExecution", () => {
     expect(result.stats.ratio).toBe(1);
   });
 
+  it.each([
+    { label: "cat", command: "cat src/rules/search/rg.json", argv: ["cat", "src/rules/search/rg.json"] },
+    { label: "head", command: "head -n 20 src/rules/search/rg.json", argv: ["head", "-n", "20", "src/rules/search/rg.json"] },
+    { label: "tail", command: "tail -n 20 src/rules/search/rg.json", argv: ["tail", "-n", "20", "src/rules/search/rg.json"] },
+    { label: "nl", command: "nl -ba src/rules/search/rg.json", argv: ["nl", "-ba", "src/rules/search/rg.json"] },
+    { label: "jq", command: "jq '.patterns' src/rules/search/rg.json", argv: ["jq", ".patterns", "src/rules/search/rg.json"] },
+  ])("keeps $label file inspection output verbatim under generic fallback", async ({ command, argv }) => {
+    const rawText = [
+      "{",
+      "  \"patterns\": [",
+      "    \"AssertionError\",",
+      "    \"TypeError\"",
+      "  ]",
+      "}",
+    ].join("\n");
+
+    const result = await reduceExecution({
+      toolName: "exec",
+      command,
+      argv,
+      stdout: rawText,
+      exitCode: 0,
+    });
+
+    expect(result.classification.matchedReducer).toBe("generic/fallback");
+    expect(result.inlineText).toBe(rawText);
+    expect(result.stats.ratio).toBe(1);
+  });
+
+  it("still compacts filesystem inventory commands through their dedicated reducers", async () => {
+    const result = await reduceExecution({
+      toolName: "exec",
+      command: "find src/rules -maxdepth 2 -type f",
+      argv: ["find", "src/rules", "-maxdepth", "2", "-type", "f"],
+      stdout: Array.from({ length: 60 }, (_, index) => `src/rules/example-${index + 1}.json`).join("\n"),
+      exitCode: 0,
+    });
+
+    expect(result.classification.matchedReducer).toBe("filesystem/find");
+    expect(result.inlineText).toContain("60 matches");
+    expect(result.stats.ratio).toBeLessThan(0.5);
+  });
+
   it("matches pnpm test runs to the test reducer family", async () => {
     const result = await reduceExecution({
       toolName: "exec",

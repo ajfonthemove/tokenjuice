@@ -46,6 +46,7 @@ export async function runReduceJsonCli(
     let stdout = "";
     let stderr = "";
     let settled = false;
+    let stdinError: Error | null = null;
 
     const timeout = typeof options.timeoutMs === "number" && options.timeoutMs > 0
       ? setTimeout(() => {
@@ -101,6 +102,21 @@ export async function runReduceJsonCli(
       reject(error);
     });
 
+    child.stdin.on("error", (error) => {
+      const streamError = error as NodeJS.ErrnoException;
+      stdinError = error;
+      if (settled) {
+        return;
+      }
+      if (streamError.code !== "EPIPE" && streamError.code !== "ERR_STREAM_DESTROYED") {
+        if (timeout) {
+          clearTimeout(timeout);
+        }
+        settled = true;
+        reject(error);
+      }
+    });
+
     child.on("close", (code) => {
       if (timeout) {
         clearTimeout(timeout);
@@ -115,6 +131,11 @@ export async function runReduceJsonCli(
         return;
       }
 
+      if (stdinError) {
+        reject(stdinError);
+        return;
+      }
+
       try {
         resolve(JSON.parse(stdout) as CompactResult);
       } catch {
@@ -122,7 +143,6 @@ export async function runReduceJsonCli(
       }
     });
 
-    child.stdin.write(JSON.stringify(request));
-    child.stdin.end();
+    child.stdin.end(JSON.stringify(request));
   });
 }
