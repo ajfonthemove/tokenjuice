@@ -27,7 +27,7 @@ pnpm add -g tokenjuice
 # or
 yarn global add tokenjuice
 # or
-brew tap vincentkoc/homebrew-tap
+brew tap vincentkoc/tap
 brew install tokenjuice
 ```
 
