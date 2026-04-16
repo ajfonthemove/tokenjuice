@@ -50,6 +50,15 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((entry) => typeof entry === "string");
 }
 
+function isFactMap(value: unknown): value is Record<string, number> {
+  return (
+    typeof value === "object"
+    && value !== null
+    && !Array.isArray(value)
+    && Object.values(value).every((entry) => typeof entry === "number" && Number.isInteger(entry) && entry >= 0)
+  );
+}
+
 function validateFixture(raw: unknown): raw is RuleFixture {
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
     return false;
@@ -77,6 +86,9 @@ function validateFixture(raw: unknown): raw is RuleFixture {
     return false;
   }
   if ("previewText" in expect && typeof expect.previewText !== "string") {
+    return false;
+  }
+  if ("facts" in expect && !isFactMap(expect.facts)) {
     return false;
   }
   if ("contains" in expect && !isStringArray(expect.contains)) {
@@ -144,6 +156,11 @@ export async function verifyBuiltinFixtures(): Promise<FixtureVerificationResult
         }
         if (fixture.expect.previewText && result.previewText !== fixture.expect.previewText) {
           errors.push(`expected previewText ${JSON.stringify(fixture.expect.previewText)}, got ${JSON.stringify(result.previewText)}`);
+        }
+        for (const [name, count] of Object.entries(fixture.expect.facts ?? {})) {
+          if ((result.facts?.[name] ?? 0) !== count) {
+            errors.push(`expected fact ${JSON.stringify(name)}=${count}, got ${result.facts?.[name] ?? 0}`);
+          }
         }
         for (const snippet of fixture.expect.contains ?? []) {
           if (!searchableText.includes(snippet)) {

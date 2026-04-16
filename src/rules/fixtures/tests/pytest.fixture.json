@@ -10,6 +10,10 @@
   "expect": {
     "matchedReducer": "tests/pytest",
     "family": "test-results",
+    "facts": {
+      "failed test": 2,
+      "passed test": 1
+    },
     "contains": ["failed test", "FAILED"]
   }
 }

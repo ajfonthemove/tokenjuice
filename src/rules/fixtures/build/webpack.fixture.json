@@ -10,6 +10,11 @@
   "expect": {
     "matchedReducer": "build/webpack",
     "family": "build-bundler",
+    "facts": {
+      "error": 3,
+      "warning": 0,
+      "asset": 0
+    },
     "contains": ["error", "Can't resolve"]
   }
 }

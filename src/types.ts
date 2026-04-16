@@ -191,6 +191,7 @@ export type RuleFixture = {
     family?: string;
     inlineText?: string;
     previewText?: string;
+    facts?: Record<string, number>;
     contains?: string[];
     excludes?: string[];
   };
