@@ -93,14 +93,14 @@ direct payload:
 }
 ```
 
-## host overview
+## overview
 
 tokenjuice can install native host hooks for:
 
-| Client | Install | Hook file | Notes |
-| --- | --- | --- | --- |
-| Claude Code | `tokenjuice install claude-code` | `~/.claude/settings.json` | Preserves unrelated settings keys while updating `hooks.PostToolUse` |
-| Codex CLI | `tokenjuice install codex` | `~/.codex/hooks.json` | `tokenjuice install codex --local` is available for repo-local verification |
+| Logo | Client | Install | Hook file | Supported |
+| --- | --- | --- | --- | --- |
+| <img src="https://cdn.simpleicons.org/anthropic" alt="Claude Code" width="18" /> | [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | `tokenjuice install claude-code` | `~/.claude/settings.json` | ✅ Yes |
+| <img src="https://cdn.simpleicons.org/openai" alt="Codex CLI" width="18" /> | [Codex CLI](https://github.com/openai/codex) | `tokenjuice install codex` | `~/.codex/hooks.json` | ✅ Yes |
 
 shared behavior:
 
@@ -109,6 +109,7 @@ shared behavior:
 - raw command execution logs are still raw
 - `tokenjuice doctor hooks` checks installed host hooks together instead of making you guess which integration drifted
 - `tokenjuice install codex --local` / `tokenjuice doctor hooks --local` are for testing the current repo build before release
+- Claude Code preserves unrelated settings keys while updating `hooks.PostToolUse`
 
 library-side adapters can also use `runReduceJsonCli(...)` to call the CLI without rebuilding the child-process + JSON plumbing themselves.
 
