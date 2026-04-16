@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -217,6 +217,40 @@ describe("doctorCodexHook", () => {
     expect(report.detectedCommand).toBe(`${localNodePath} ${localCliPath} codex-post-tool-use`);
     expect(report.fixCommand).toBe("tokenjuice install codex --local");
     expect(report.issues).toEqual([]);
+  });
+
+  it("flags stale local codex builds when source is newer than dist", async () => {
+    const home = await createTempDir();
+    const hooksPath = join(home, "hooks.json");
+    const localNodePath = join(home, "node");
+    const localCliPath = join(home, "dist", "cli", "main.js");
+    const sourcePath = join(home, "src", "core", "codex.ts");
+    const oldTime = new Date("2026-04-15T00:00:00.000Z");
+    const newTime = new Date("2026-04-16T00:00:00.000Z");
+
+    await mkdir(join(home, "dist", "cli"), { recursive: true });
+    await mkdir(join(home, "src", "core"), { recursive: true });
+    await writeFile(localNodePath, "#!/usr/bin/env bash\nexit 0\n", { encoding: "utf8", mode: 0o755 });
+    await writeFile(localCliPath, "console.log('tokenjuice');\n", "utf8");
+    await writeFile(sourcePath, "export const changed = true;\n", "utf8");
+    await utimes(localCliPath, oldTime, oldTime);
+    await utimes(sourcePath, newTime, newTime);
+
+    await installCodexHook(hooksPath, {
+      local: true,
+      binaryPath: localCliPath,
+      nodePath: localNodePath,
+    });
+
+    const report = await doctorCodexHook(hooksPath, {
+      local: true,
+      binaryPath: localCliPath,
+      nodePath: localNodePath,
+    });
+
+    expect(report.status).toBe("warn");
+    expect(report.issues).toContain("local Codex hook target is older than the source tree");
+    expect(report.fixCommand).toBe("pnpm build && tokenjuice install codex --local");
   });
 });
 

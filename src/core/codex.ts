@@ -1,5 +1,5 @@
 import { constants as fsConstants } from "node:fs";
-import { access, mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, readdir, rename, stat, writeFile } from "node:fs/promises";
 import { delimiter, dirname, isAbsolute, join, resolve } from "node:path";
 import { homedir } from "node:os";
 
@@ -146,6 +146,47 @@ async function pathExists(path: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+async function newestMtimeMs(path: string): Promise<number | undefined> {
+  try {
+    const details = await stat(path);
+    let newest = details.mtimeMs;
+    if (details.isDirectory()) {
+      for (const entry of await readdir(path)) {
+        const childNewest = await newestMtimeMs(join(path, entry));
+        if (typeof childNewest === "number" && childNewest > newest) {
+          newest = childNewest;
+        }
+      }
+    }
+    return newest;
+  } catch {
+    return undefined;
+  }
+}
+
+async function detectStaleLocalBuild(commandPaths: string[]): Promise<boolean> {
+  const distPath = commandPaths.find((path) => path.endsWith("/dist/cli/main.js") || path.endsWith("\\dist\\cli\\main.js"));
+  if (!distPath) {
+    return false;
+  }
+
+  let distMtimeMs: number;
+  try {
+    distMtimeMs = (await stat(distPath)).mtimeMs;
+  } catch {
+    return false;
+  }
+
+  const projectRoot = dirname(dirname(dirname(distPath)));
+  const latestSourceMtimeMs = Math.max(
+    await newestMtimeMs(join(projectRoot, "src")) ?? 0,
+    await newestMtimeMs(join(projectRoot, "package.json")) ?? 0,
+    await newestMtimeMs(join(projectRoot, "tsconfig.json")) ?? 0,
+  );
+
+  return latestSourceMtimeMs > distMtimeMs;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -445,7 +486,7 @@ export async function doctorCodexHook(
   options: CodexHookCommandOptions = {},
 ): Promise<CodexDoctorReport> {
   const expectedCommand = await buildCodexHookCommand(options);
-  const fixCommand = getCodexFixCommand(options.local);
+  let fixCommand = getCodexFixCommand(options.local);
   const { config, exists } = await readHooksConfig(hooksPath);
   const detectedCommand = findTokenjuiceCodexHookCommand(config);
 
@@ -491,6 +532,10 @@ export async function doctorCodexHook(
   }
   if (missingPaths.length > 0) {
     issues.push(`configured Codex hook points at missing path${missingPaths.length === 1 ? "" : "s"}`);
+  }
+  if (options.local && await detectStaleLocalBuild(checkedPaths)) {
+    issues.push("local Codex hook target is older than the source tree");
+    fixCommand = "pnpm build && tokenjuice install codex --local";
   }
 
   return {
