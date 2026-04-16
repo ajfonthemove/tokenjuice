@@ -20,14 +20,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vincentkoc/tokenjuice.git"
+    "url": "https://github.com/vincentkoc/tokenjuice"
   },
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "tokenjuice": "./dist/cli/main.js"
+    "tokenjuice": "dist/cli/main.js"
   },
   "exports": {
     ".": "./dist/index.js"
