@@ -8,6 +8,10 @@ import type { CompactResult, CompiledRule, ReduceOptions, ToolExecutionInput } f
 
 const TINY_OUTPUT_MAX_CHARS = 240;
 
+function compactWhitespace(text: string): string {
+  return text.replace(/\s+/gu, " ").trim();
+}
+
 function rewriteGitStatusLine(line: string): string | null {
   const trimmed = line.trim();
   if (!trimmed) {
@@ -93,6 +97,146 @@ function rewriteGitStatusLines(lines: string[]): string[] {
   return collapsed;
 }
 
+function extractGhLabelNames(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((entry) => {
+    if (typeof entry === "string") {
+      return entry ? [entry] : [];
+    }
+    if (typeof entry === "object" && entry !== null && "name" in entry && typeof entry.name === "string") {
+      return entry.name ? [entry.name] : [];
+    }
+    return [];
+  });
+}
+
+function extractGhCommentCount(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.length;
+  }
+  if (typeof value === "object" && value !== null && "totalCount" in value && typeof value.totalCount === "number") {
+    return value.totalCount;
+  }
+  return null;
+}
+
+function parseJsonObjectLine(line: string): Record<string, unknown> | null {
+  const trimmed = line.trim();
+  if (!trimmed.startsWith("{") || !trimmed.endsWith("}")) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed) as unknown;
+    return typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)
+      ? parsed as Record<string, unknown>
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function formatGhJsonRecord(record: Record<string, unknown>): string | null {
+  const numericId = typeof record.number === "number" ? record.number
+    : typeof record.databaseId === "number" ? record.databaseId
+      : null;
+  const title = typeof record.title === "string" ? record.title
+    : typeof record.displayTitle === "string" ? record.displayTitle
+      : typeof record.name === "string" ? record.name
+        : typeof record.workflowName === "string" ? record.workflowName
+          : null;
+  if (!title) {
+    return null;
+  }
+
+  const labels = extractGhLabelNames(record.labels).slice(0, 3);
+  const comments = extractGhCommentCount(record.comments);
+  const branch = typeof record.headBranch === "string" ? record.headBranch
+    : typeof record.headRefName === "string" ? record.headRefName
+      : null;
+  const status = typeof record.state === "string" ? record.state
+    : typeof record.status === "string" ? record.status
+      : typeof record.conclusion === "string" ? record.conclusion
+        : null;
+  const updatedAt = typeof record.updatedAt === "string" ? record.updatedAt.slice(0, 10) : null;
+
+  const parts: string[] = [];
+  if (numericId !== null) {
+    parts.push(`#${numericId}`);
+  }
+  parts.push(compactWhitespace(title));
+  if (status) {
+    parts.push(`[${status}]`);
+  }
+  if (branch) {
+    parts.push(`(${compactWhitespace(branch)})`);
+  }
+  if (typeof comments === "number" && comments > 0) {
+    parts.push(`${comments}c`);
+  }
+  if (labels.length > 0) {
+    parts.push(`{${labels.join(", ")}}`);
+  }
+  if (updatedAt) {
+    parts.push(updatedAt);
+  }
+  return parts.join(" ");
+}
+
+function formatGhTableLine(line: string): string {
+  const trimmed = line.trim();
+  if (!trimmed) {
+    return "";
+  }
+
+  const columns = trimmed.split(/\s{2,}|\t+/u).map((part) => compactWhitespace(part)).filter(Boolean);
+  if (columns.length >= 2 && /^\d+$/u.test(columns[0] ?? "")) {
+    const number = columns[0]!;
+    const title = columns[1]!;
+    const state = columns.length >= 4 ? columns.at(-1) : null;
+    const context = columns.length >= 3 ? columns.slice(2, state ? -1 : undefined).join(" ") : null;
+    const parts = [`#${number}`, title];
+    if (state) {
+      parts.push(`[${state}]`);
+    }
+    if (context) {
+      parts.push(`(${context})`);
+    }
+    return parts.join(" ");
+  }
+
+  return compactWhitespace(trimmed);
+}
+
+function rewriteGhLines(lines: string[], input: ToolExecutionInput): string[] {
+  const nonEmpty = lines.filter((line) => line.trim() !== "");
+  if (nonEmpty.length === 0) {
+    return [];
+  }
+
+  const parsedJsonLines = nonEmpty.map(parseJsonObjectLine);
+  if (parsedJsonLines.every((entry) => entry !== null)) {
+    const rewritten = parsedJsonLines
+      .map((entry) => formatGhJsonRecord(entry!))
+      .filter((line): line is string => typeof line === "string" && line.length > 0);
+    if (rewritten.length > 0) {
+      return rewritten;
+    }
+  }
+
+  if ((input.argv ?? [])[0] === "gh") {
+    return lines.map(formatGhTableLine);
+  }
+
+  return lines;
+}
+
 function buildRawText(input: ToolExecutionInput): string {
   if (input.combinedText) {
     return input.combinedText;
@@ -139,6 +283,9 @@ function applyRule(compiledRule: CompiledRule, input: ToolExecutionInput, rawTex
 
   if (rule.id === "git/status") {
     lines = rewriteGitStatusLines(lines);
+  }
+  if (rule.id === "cloud/gh") {
+    lines = rewriteGhLines(lines, input);
   }
 
   for (const counter of compiledRule.compiled.counters) {

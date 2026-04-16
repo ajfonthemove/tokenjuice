@@ -261,6 +261,42 @@ describe("reduceExecution", () => {
     expect(result.stats.reducedChars).toBeLessThan(result.stats.rawChars);
   });
 
+  it("formats gh issue json-line output into compact issue summaries", async () => {
+    const result = await reduceExecution({
+      toolName: "exec",
+      command: "gh issue list -R openclaw/openclaw --limit 2 --json number,title,url,comments,updatedAt,labels --jq '.[] | {number,title,url,comments:(.comments|length),updatedAt,labels:[.labels[].name]}'",
+      argv: ["gh", "issue", "list", "--json", "number,title,url,comments,updatedAt,labels"],
+      combinedText: [
+        "{\"number\":67473,\"title\":\"[Bug]: Auto-compaction (threshold-based) never fires in embedded runner\",\"url\":\"https://github.com/openclaw/openclaw/issues/67473\",\"comments\":0,\"updatedAt\":\"2026-04-16T01:52:50Z\",\"labels\":[\"bug\",\"bug:behavior\"]}",
+        "{\"number\":67469,\"title\":\"[Bug]: google-gemini-cli replies stop being persisted to OpenClaw session transcripts / WebUI history\",\"url\":\"https://github.com/openclaw/openclaw/issues/67469\",\"comments\":1,\"updatedAt\":\"2026-04-16T02:06:50Z\",\"labels\":[\"bug\",\"regression\"]}",
+      ].join("\n"),
+      exitCode: 0,
+    });
+
+    expect(result.classification.matchedReducer).toBe("cloud/gh");
+    expect(result.inlineText).toContain("#67473");
+    expect(result.inlineText).toContain("{bug, bug:behavior}");
+    expect(result.inlineText).toContain("2026-04-16");
+    expect(result.inlineText).not.toContain("\"number\":67473");
+  });
+
+  it("formats gh table output into compact list lines", async () => {
+    const result = await reduceExecution({
+      toolName: "exec",
+      command: "gh pr list",
+      argv: ["gh", "pr", "list"],
+      combinedText: [
+        "123  feat: add tokenjuice cloud reducers        vincentkoc:main   OPEN",
+        "122  fix: tighten fixture verification          vincentkoc:main   OPEN",
+      ].join("\n"),
+      exitCode: 0,
+    });
+
+    expect(result.classification.matchedReducer).toBe("cloud/gh");
+    expect(result.inlineText).toContain("#123 feat: add tokenjuice cloud reducers [OPEN] (vincentkoc:main)");
+    expect(result.inlineText).not.toContain("        ");
+  });
+
   it("preserves emoji and CJK while stripping ANSI from user-facing output and stats", async () => {
     const visibleText = ["错误🔥", "修复🙂", "完了✅"].join("\n");
     const coloredText = [
