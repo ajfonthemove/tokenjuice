@@ -62,41 +62,42 @@ import rule57 from "../rules/observability/htop.json" with { type: "json" };
 import rule58 from "../rules/observability/iostat.json" with { type: "json" };
 import rule59 from "../rules/observability/top.json" with { type: "json" };
 import rule60 from "../rules/observability/vmstat.json" with { type: "json" };
-import rule61 from "../rules/package/apt-install.json" with { type: "json" };
-import rule62 from "../rules/package/apt-upgrade.json" with { type: "json" };
-import rule63 from "../rules/package/brew-install.json" with { type: "json" };
-import rule64 from "../rules/package/brew-upgrade.json" with { type: "json" };
-import rule65 from "../rules/package/dnf-install.json" with { type: "json" };
-import rule66 from "../rules/package/yum-install.json" with { type: "json" };
-import rule67 from "../rules/search/git-grep.json" with { type: "json" };
-import rule68 from "../rules/search/grep.json" with { type: "json" };
-import rule69 from "../rules/search/rg.json" with { type: "json" };
-import rule70 from "../rules/service/journalctl.json" with { type: "json" };
-import rule71 from "../rules/service/launchctl.json" with { type: "json" };
-import rule72 from "../rules/service/lsof.json" with { type: "json" };
-import rule73 from "../rules/service/netstat.json" with { type: "json" };
-import rule74 from "../rules/service/service.json" with { type: "json" };
-import rule75 from "../rules/service/ss.json" with { type: "json" };
-import rule76 from "../rules/service/systemctl-status.json" with { type: "json" };
-import rule77 from "../rules/system/df.json" with { type: "json" };
-import rule78 from "../rules/system/du.json" with { type: "json" };
-import rule79 from "../rules/system/file.json" with { type: "json" };
-import rule80 from "../rules/system/ps.json" with { type: "json" };
-import rule81 from "../rules/task/just.json" with { type: "json" };
-import rule82 from "../rules/task/make.json" with { type: "json" };
-import rule83 from "../rules/tests/bun-test.json" with { type: "json" };
-import rule84 from "../rules/tests/cargo-test.json" with { type: "json" };
-import rule85 from "../rules/tests/go-test.json" with { type: "json" };
-import rule86 from "../rules/tests/jest.json" with { type: "json" };
-import rule87 from "../rules/tests/mocha.json" with { type: "json" };
-import rule88 from "../rules/tests/npm-test.json" with { type: "json" };
-import rule89 from "../rules/tests/playwright.json" with { type: "json" };
-import rule90 from "../rules/tests/pnpm-test.json" with { type: "json" };
-import rule91 from "../rules/tests/pytest.json" with { type: "json" };
-import rule92 from "../rules/tests/vitest.json" with { type: "json" };
-import rule93 from "../rules/tests/yarn-test.json" with { type: "json" };
-import rule94 from "../rules/transfer/rsync.json" with { type: "json" };
-import rule95 from "../rules/transfer/scp.json" with { type: "json" };
+import rule61 from "../rules/openclaw/sessions-history.json" with { type: "json" };
+import rule62 from "../rules/package/apt-install.json" with { type: "json" };
+import rule63 from "../rules/package/apt-upgrade.json" with { type: "json" };
+import rule64 from "../rules/package/brew-install.json" with { type: "json" };
+import rule65 from "../rules/package/brew-upgrade.json" with { type: "json" };
+import rule66 from "../rules/package/dnf-install.json" with { type: "json" };
+import rule67 from "../rules/package/yum-install.json" with { type: "json" };
+import rule68 from "../rules/search/git-grep.json" with { type: "json" };
+import rule69 from "../rules/search/grep.json" with { type: "json" };
+import rule70 from "../rules/search/rg.json" with { type: "json" };
+import rule71 from "../rules/service/journalctl.json" with { type: "json" };
+import rule72 from "../rules/service/launchctl.json" with { type: "json" };
+import rule73 from "../rules/service/lsof.json" with { type: "json" };
+import rule74 from "../rules/service/netstat.json" with { type: "json" };
+import rule75 from "../rules/service/service.json" with { type: "json" };
+import rule76 from "../rules/service/ss.json" with { type: "json" };
+import rule77 from "../rules/service/systemctl-status.json" with { type: "json" };
+import rule78 from "../rules/system/df.json" with { type: "json" };
+import rule79 from "../rules/system/du.json" with { type: "json" };
+import rule80 from "../rules/system/file.json" with { type: "json" };
+import rule81 from "../rules/system/ps.json" with { type: "json" };
+import rule82 from "../rules/task/just.json" with { type: "json" };
+import rule83 from "../rules/task/make.json" with { type: "json" };
+import rule84 from "../rules/tests/bun-test.json" with { type: "json" };
+import rule85 from "../rules/tests/cargo-test.json" with { type: "json" };
+import rule86 from "../rules/tests/go-test.json" with { type: "json" };
+import rule87 from "../rules/tests/jest.json" with { type: "json" };
+import rule88 from "../rules/tests/mocha.json" with { type: "json" };
+import rule89 from "../rules/tests/npm-test.json" with { type: "json" };
+import rule90 from "../rules/tests/playwright.json" with { type: "json" };
+import rule91 from "../rules/tests/pnpm-test.json" with { type: "json" };
+import rule92 from "../rules/tests/pytest.json" with { type: "json" };
+import rule93 from "../rules/tests/vitest.json" with { type: "json" };
+import rule94 from "../rules/tests/yarn-test.json" with { type: "json" };
+import rule95 from "../rules/transfer/rsync.json" with { type: "json" };
+import rule96 from "../rules/transfer/scp.json" with { type: "json" };
 
 export const BUNDLED_BUILTIN_RULES: JsonRule[] = [
   rule0 as JsonRule, // rules/archive/tar.json
@@ -160,39 +161,40 @@ export const BUNDLED_BUILTIN_RULES: JsonRule[] = [
   rule58 as JsonRule, // rules/observability/iostat.json
   rule59 as JsonRule, // rules/observability/top.json
   rule60 as JsonRule, // rules/observability/vmstat.json
-  rule61 as JsonRule, // rules/package/apt-install.json
-  rule62 as JsonRule, // rules/package/apt-upgrade.json
-  rule63 as JsonRule, // rules/package/brew-install.json
-  rule64 as JsonRule, // rules/package/brew-upgrade.json
-  rule65 as JsonRule, // rules/package/dnf-install.json
-  rule66 as JsonRule, // rules/package/yum-install.json
-  rule67 as JsonRule, // rules/search/git-grep.json
-  rule68 as JsonRule, // rules/search/grep.json
-  rule69 as JsonRule, // rules/search/rg.json
-  rule70 as JsonRule, // rules/service/journalctl.json
-  rule71 as JsonRule, // rules/service/launchctl.json
-  rule72 as JsonRule, // rules/service/lsof.json
-  rule73 as JsonRule, // rules/service/netstat.json
-  rule74 as JsonRule, // rules/service/service.json
-  rule75 as JsonRule, // rules/service/ss.json
-  rule76 as JsonRule, // rules/service/systemctl-status.json
-  rule77 as JsonRule, // rules/system/df.json
-  rule78 as JsonRule, // rules/system/du.json
-  rule79 as JsonRule, // rules/system/file.json
-  rule80 as JsonRule, // rules/system/ps.json
-  rule81 as JsonRule, // rules/task/just.json
-  rule82 as JsonRule, // rules/task/make.json
-  rule83 as JsonRule, // rules/tests/bun-test.json
-  rule84 as JsonRule, // rules/tests/cargo-test.json
-  rule85 as JsonRule, // rules/tests/go-test.json
-  rule86 as JsonRule, // rules/tests/jest.json
-  rule87 as JsonRule, // rules/tests/mocha.json
-  rule88 as JsonRule, // rules/tests/npm-test.json
-  rule89 as JsonRule, // rules/tests/playwright.json
-  rule90 as JsonRule, // rules/tests/pnpm-test.json
-  rule91 as JsonRule, // rules/tests/pytest.json
-  rule92 as JsonRule, // rules/tests/vitest.json
-  rule93 as JsonRule, // rules/tests/yarn-test.json
-  rule94 as JsonRule, // rules/transfer/rsync.json
-  rule95 as JsonRule, // rules/transfer/scp.json
+  rule61 as JsonRule, // rules/openclaw/sessions-history.json
+  rule62 as JsonRule, // rules/package/apt-install.json
+  rule63 as JsonRule, // rules/package/apt-upgrade.json
+  rule64 as JsonRule, // rules/package/brew-install.json
+  rule65 as JsonRule, // rules/package/brew-upgrade.json
+  rule66 as JsonRule, // rules/package/dnf-install.json
+  rule67 as JsonRule, // rules/package/yum-install.json
+  rule68 as JsonRule, // rules/search/git-grep.json
+  rule69 as JsonRule, // rules/search/grep.json
+  rule70 as JsonRule, // rules/search/rg.json
+  rule71 as JsonRule, // rules/service/journalctl.json
+  rule72 as JsonRule, // rules/service/launchctl.json
+  rule73 as JsonRule, // rules/service/lsof.json
+  rule74 as JsonRule, // rules/service/netstat.json
+  rule75 as JsonRule, // rules/service/service.json
+  rule76 as JsonRule, // rules/service/ss.json
+  rule77 as JsonRule, // rules/service/systemctl-status.json
+  rule78 as JsonRule, // rules/system/df.json
+  rule79 as JsonRule, // rules/system/du.json
+  rule80 as JsonRule, // rules/system/file.json
+  rule81 as JsonRule, // rules/system/ps.json
+  rule82 as JsonRule, // rules/task/just.json
+  rule83 as JsonRule, // rules/task/make.json
+  rule84 as JsonRule, // rules/tests/bun-test.json
+  rule85 as JsonRule, // rules/tests/cargo-test.json
+  rule86 as JsonRule, // rules/tests/go-test.json
+  rule87 as JsonRule, // rules/tests/jest.json
+  rule88 as JsonRule, // rules/tests/mocha.json
+  rule89 as JsonRule, // rules/tests/npm-test.json
+  rule90 as JsonRule, // rules/tests/playwright.json
+  rule91 as JsonRule, // rules/tests/pnpm-test.json
+  rule92 as JsonRule, // rules/tests/pytest.json
+  rule93 as JsonRule, // rules/tests/vitest.json
+  rule94 as JsonRule, // rules/tests/yarn-test.json
+  rule95 as JsonRule, // rules/transfer/rsync.json
+  rule96 as JsonRule, // rules/transfer/scp.json
 ];
